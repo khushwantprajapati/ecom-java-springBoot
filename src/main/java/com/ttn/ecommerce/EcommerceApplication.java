@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 public class EcommerceApplication {
 
     public static void main(String[] args) {
-        System.out.println("It is working why.");
+        System.out.println("It is working yes.");
         SpringApplication.run(EcommerceApplication.class, args);
     }
 
