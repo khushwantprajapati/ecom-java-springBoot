@@ -9,14 +9,14 @@ import java.util.List;
 
 public interface ProductService {
 
-    ResponseEntity<?> addProduct(String token, ProductDto productDto);
+    ResponseEntity<?> addProduct(ProductDto productDto);
 
 
-    ResponseEntity<?> viewProduct(String token, Long id);
+    ResponseEntity<?> viewProduct(Long id);
 
-    ResponseEntity<List<ProductResponseDto>> viewAllProduct(HttpServletRequest request);
+    ResponseEntity<List<ProductResponseDto>> viewAllProduct( );
 
-    ResponseEntity<?> deleteProduct(HttpServletRequest request, Long id);
+    ResponseEntity<?> deleteProduct(Long id);
 
     ResponseEntity<?> updateProduct(Long productId, ProductDto productDto);
 

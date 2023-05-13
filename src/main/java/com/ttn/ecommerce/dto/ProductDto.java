@@ -13,6 +13,9 @@ public class ProductDto {
     private String brand;
     private Seller seller;
     private Long category;
+    private Boolean isCancellable;
+    private Boolean isReturnable;
+
 
 
 }

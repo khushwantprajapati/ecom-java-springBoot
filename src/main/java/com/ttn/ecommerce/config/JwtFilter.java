@@ -1,5 +1,6 @@
 package com.ttn.ecommerce.config;
 
+import com.ttn.ecommerce.model.Token;
 import com.ttn.ecommerce.repository.TokenRepository;
 import com.ttn.ecommerce.util.JwtUtils;
 import jakarta.servlet.FilterChain;
@@ -7,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -37,6 +39,17 @@ public class JwtFilter extends OncePerRequestFilter {
 
         try {
             if (StringUtils.hasText(token)) {
+                Token accessToken = tokenRepository.findByJwt(token).orElse(null);
+                if(accessToken == null){
+                    response.setStatus(HttpStatus.BAD_REQUEST.value());
+                    response.getWriter().write("Token not found");
+                    return;
+                }
+                if (jwtUtils.isTokenExpired(accessToken.getJwt())) {
+                    tokenRepository.delete(accessToken);
+                    response.setStatus(HttpStatus.BAD_REQUEST.value());
+                    response.getWriter().write("Token is expired");
+                }
                 String username = jwtUtils.validateTokenAndRetrieveSubject(token);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

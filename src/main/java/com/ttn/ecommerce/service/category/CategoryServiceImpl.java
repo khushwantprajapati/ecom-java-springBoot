@@ -44,30 +44,48 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public ResponseEntity<String> addMetadata(MetadataFieldDto metadataField) {
+        // Create a new CategoryMetadataField object
         CategoryMetadataField metadata = new CategoryMetadataField();
+
+        // Check if a metadata field with the same name already exists
         if (metadataFieldRepository.findByName(metadataField.getName()).isPresent()) {
+            // If it exists, throw a GenericException with a message indicating the duplicate field name
             throw new GenericException("Metadata field with name '"
                     + metadataField.getName() + "' already exists.", HttpStatus.BAD_REQUEST);
         }
+
+        // Set the name of the new metadata field
         metadata.setName(metadataField.getName());
+
+        // Save the new metadata field to the repository
         metadataFieldRepository.save(metadata);
+
+        // Return a success response with the ID of the newly created metadata field
         return ResponseEntity.status(HttpStatus.CREATED).body("Metadata field with ID "
                 + metadata.getId() + " created successfully.");
     }
 
 
+
     @Override
-    public ResponseEntity<?> getMetadataField(int offset, int size) {
-        List<?> fieldName = metadataFieldRepository
-                .findAll(PageRequest.of(offset, size, Sort.by(Sort.Direction.ASC, "id")))
-                .stream()
-                .map(e -> {
-                    MetadataFieldDto metadataFieldDto = new MetadataFieldDto();
-                    metadataFieldDto.setName(e.getName());
-                    return metadataFieldDto;
-                }).toList();
-        return ResponseEntity.ok().body(fieldName);
+    public ResponseEntity<List<MetadataFieldDto>> getMetadataField(int offset, int size) {
+        // Get a list of all metadata fields with pagination and sorting
+        Page<CategoryMetadataField> metadataFields = metadataFieldRepository.findAll(PageRequest.of(offset, size, Sort.by(Sort.Direction.ASC, "id")));
+
+        // Create a list to store DTO objects
+        List<MetadataFieldDto> metadataFieldDtoList = new ArrayList<>();
+
+        // Iterate through the metadata fields and create DTO objects
+        for (CategoryMetadataField metadataField : metadataFields) {
+            MetadataFieldDto metadataFieldDto = new MetadataFieldDto();
+            metadataFieldDto.setName(metadataField.getName());
+            metadataFieldDtoList.add(metadataFieldDto);
+        }
+
+        // Return the list of DTO objects in the response
+        return ResponseEntity.ok().body(metadataFieldDtoList);
     }
+
 
     @Override
     public ResponseEntity<?> addCategory(CategoryDto categoryDto) {
@@ -192,9 +210,10 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public ResponseEntity<?> updateMetaFieldValues(MetadataFieldValueDto metadataFieldValueDto) {
 
-        Category category = categoryRepository.findById(metadataFieldValueDto.getCategoryId())
+        categoryRepository.findById(metadataFieldValueDto.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Category not found"));
-        CategoryMetadataField categoryMetadataField = metadataFieldRepository.findById(metadataFieldValueDto.getMetadataId())
+
+        metadataFieldRepository.findById(metadataFieldValueDto.getMetadataId())
                 .orElseThrow(() -> new EntityNotFoundException("Metadata Field not found"));
 
         FieldValuesId catConnector = new FieldValuesId(metadataFieldValueDto.getCategoryId(), metadataFieldValueDto.getMetadataId());

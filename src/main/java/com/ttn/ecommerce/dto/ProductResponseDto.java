@@ -1,5 +1,6 @@
 package com.ttn.ecommerce.dto;
 
+import com.ttn.ecommerce.model.Category;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,6 +15,7 @@ public class ProductResponseDto {
     private Boolean isReturnable;
     private Boolean isActive;
     private Boolean isDeleted;
+    private Category category;
 
 
 }

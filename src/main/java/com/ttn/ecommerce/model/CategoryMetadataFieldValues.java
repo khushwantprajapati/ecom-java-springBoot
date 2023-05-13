@@ -22,6 +22,7 @@ public class CategoryMetadataFieldValues {
     @Column
     @Convert(converter = StringListConverter.class)
     private List<String> value;
+
     @ManyToOne
     @MapsId("categoryMetadataField")
     private CategoryMetadataField categoryMetadataField;

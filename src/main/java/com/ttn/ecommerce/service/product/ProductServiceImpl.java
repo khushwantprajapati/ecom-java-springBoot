@@ -10,18 +10,23 @@ import com.ttn.ecommerce.repository.*;
 import com.ttn.ecommerce.service.EmailSenderService;
 import com.ttn.ecommerce.util.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
+
 public class ProductServiceImpl implements ProductService {
 
     @Autowired
@@ -46,12 +51,13 @@ public class ProductServiceImpl implements ProductService {
     CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
 
     @Override
-    public ResponseEntity<?> addProduct(String token, ProductDto productDto) {
+    public ResponseEntity<?> addProduct(ProductDto productDto) {
         if (Objects.isNull(productDto)) { // Check if productDto is null
             throw new GenericException("Invalid input parameters", HttpStatus.BAD_REQUEST);
         }
 
-        String email = jwtUtils.validateTokenAndRetrieveSubject(token); // Extract seller email from JWT token
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
         Seller seller = sellerRepository.findByEmailIgnoreCase(email); // Find seller by email
 
         if (Objects.isNull(seller)) { // Check if seller is null
@@ -63,6 +69,8 @@ public class ProductServiceImpl implements ProductService {
         product.setName(productDto.getName());
         product.setDescription(productDto.getDescription());
         product.setSeller(seller);
+
+        // name should be unique and category id pass should be valid leaf node
 
         Optional<Category> category = categoryRepository.findById(productDto.getCategory()); // Find category by ID
         if (category.isEmpty()) { // Check if category is empty
@@ -95,9 +103,9 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ResponseEntity<?> viewProduct(String token, Long id) {
+    public ResponseEntity<?> viewProduct(Long id) {
         // Validate token and retrieve email of the seller from the token
-        String email = jwtUtils.validateTokenAndRetrieveSubject(token);
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         // Retrieve the seller from the email
         Seller seller = sellerRepository.findByEmailIgnoreCase(email);
 
@@ -131,37 +139,69 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<List<ProductResponseDto>> viewAllProduct(HttpServletRequest request) {
-        String accessToken = jwtUtils.getTokenThroughRequest(request);
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
-        List<Product> products = productRepository.findAll();
-        List<ProductResponseDto> productResponseDtoArrayList = new ArrayList<>();
-        for (Product product : products) {
-            ProductResponseDto productDto = new ProductResponseDto();
-            productDto.setId(product.getId());
-            productDto.setName(product.getName());
-            productDto.setDescription(product.getDescription());
-            productDto.setBrand(product.getBrand());
-            productDto.setIsCancellable(product.getIsCancellable());
-            productDto.setIsReturnable(product.getIsReturnable());
-            productDto.setIsActive(product.getIsActive());
-            productDto.setIsDeleted(product.getIsDeleted());
-            productResponseDtoArrayList.add(productDto);
+    public ResponseEntity<List<ProductResponseDto>> viewAllProduct() {
+
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // Retrieve seller object from database using the email
+        Seller seller = sellerRepository.findByEmailIgnoreCase(email);
+
+        // Check if seller exists, throw exception if not
+        if (Objects.isNull(seller)) {
+            throw new GenericException("Invalid seller", HttpStatus.NOT_FOUND);
         }
-        return ResponseEntity.status(HttpStatus.OK).body(productResponseDtoArrayList);
+
+        // Retrieve list of products created by the seller, excluding the deleted products
+        List<Product> products = productRepository.findBySellerAndIsDeletedFalse(seller);
+        // Convert the list of Product objects to a list of ProductResponseDto objects using stream and map
+        List<ProductResponseDto> productResponseDtoList = products.stream()
+                .map(product -> {
+                    // Create a new ProductResponseDto object and set its properties from the Product object
+                    ProductResponseDto productDto = new ProductResponseDto();
+                    productDto.setId(product.getId());
+                    productDto.setName(product.getName());
+                    productDto.setDescription(product.getDescription());
+                    productDto.setBrand(product.getBrand());
+                    productDto.setIsCancellable(product.getIsCancellable());
+                    productDto.setIsReturnable(product.getIsReturnable());
+                    productDto.setIsActive(product.getIsActive());
+                    productDto.setIsDeleted(product.getIsDeleted());
+                    // Set category details for the product response DTO using a static method of CategoryDto class
+//                    productDto.setCategoryDetails(CategoryDto.fromCategory(product.getCategory()));
+                    // Return the ProductResponseDto object
+                    return productDto;
+                })
+                .collect(Collectors.toList());
+
+        // Return the list of ProductResponseDto objects in the response body with HTTP status code 200 OK
+        return ResponseEntity.status(HttpStatus.OK).body(productResponseDtoList);
     }
+
 
     @Override
-    public ResponseEntity<?> deleteProduct(HttpServletRequest request, Long id) {
-        String accessToken = jwtUtils.getTokenThroughRequest(request);
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> deleteProduct( Long id) {
+
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        // Retrieve the seller based on the email
         Seller seller = sellerRepository.findByEmailIgnoreCase(email);
+
+        // Retrieve the product by the ID and the seller
         Product product = productRepository.findBySellerAndId(seller, id);
 
-        productRepository.delete(product);
+        // Check if the product exists
+        if (Objects.isNull(product)) {
+            // If the product does not exist, return a 404 error response
+            throw new GenericException("Product not found", HttpStatus.NOT_FOUND);
+        }
 
-        return ResponseEntity.status(HttpStatus.OK).body("Product Successfully deleted");
+        // Delete the product
+        product.setIsDeleted(Boolean.TRUE);
+        productRepository.save(product);
+
+        // Return a success response
+        return ResponseEntity.status(HttpStatus.OK).body("Product successfully deleted");
     }
+
 
     @Override
     public ResponseEntity<?> updateProduct(Long productId, ProductDto productDto) {
@@ -173,6 +213,8 @@ public class ProductServiceImpl implements ProductService {
         product.setName(productDto.getName());
         product.setBrand(productDto.getBrand());
         product.setDescription(productDto.getDescription());
+        product.setIsReturnable(productDto.getIsReturnable());
+        product.setIsCancellable(productDto.getIsCancellable());
 
         Optional<Category> category = categoryRepository.findById(productDto.getCategory());
         if (category.isEmpty()) {
@@ -212,28 +254,6 @@ public class ProductServiceImpl implements ProductService {
         return ResponseEntity.status(HttpStatus.OK).body(productResponseDto);
     }
 
-//    @Override
-//    public ResponseEntity<?> viewProductCustomer(String token, Long id) {
-//        String email = jwtUtils.validateTokenAndRetrieveSubject(token);
-//        Seller seller = sellerRepository.findByEmailIgnoreCase(email);
-//
-//        if (Objects.isNull(seller)) {
-//            throw new GenericException("Invalid seller", HttpStatus.NOT_FOUND);
-//        }
-//        Product product = productRepository.findBySellerAndId(seller, id);
-//
-//        ProductResponseDto productResponseDto = new ProductResponseDto();
-//
-//        productResponseDto.setName(product.getName());
-//        productResponseDto.setDescription(product.getDescription());
-//        productResponseDto.setBrand(product.getBrand());
-//        productResponseDto.setIsCancellable(product.getIsCancellable());
-//        productResponseDto.setIsReturnable(product.getIsReturnable());
-//        productResponseDto.setIsActive(product.getIsActive());
-//        productResponseDto.setIsDeleted(product.getIsDeleted());
-//
-//        return ResponseEntity.status(HttpStatus.OK).body(productResponseDto);
-//    }
 
     @Override
     public ResponseEntity<List<ProductDto>> getAllProductsByCategory(Long categoryId) {
@@ -287,21 +307,25 @@ public class ProductServiceImpl implements ProductService {
         return ResponseEntity.ok().body(productDtoList);
     }
 
+
+    // admin
     @Override
     public ResponseEntity<?> getProductAdmin(Long id) {
 
+        // Check if the product ID is valid
         if (id == null || id <= 0) {
             return ResponseEntity.badRequest().body("Invalid product ID");
         }
 
+        // Retrieve the product details from the repository
         Product product = productRepository.findById(id).orElse(null);
 
-
+        // Check if the product exists
         if (product == null) {
             return ResponseEntity.notFound().build();
         }
 
-
+        // Create a ProductResponseDto containing the relevant product details
         ProductResponseDto responseDto = new ProductResponseDto();
         responseDto.setId(product.getId());
         responseDto.setName(product.getName());
@@ -313,6 +337,7 @@ public class ProductServiceImpl implements ProductService {
         responseDto.setIsDeleted(product.getIsDeleted());
 
 
+        // Return the product details in the response
         return ResponseEntity.ok().body(responseDto);
     }
 

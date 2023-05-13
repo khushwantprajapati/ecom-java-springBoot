@@ -18,8 +18,8 @@ public class ProductController {
     ProductService productService;
 
     @PostMapping("/add/seller")
-    ResponseEntity<?> addProduct(@RequestHeader String token, @RequestBody ProductDto productDto) {
-        return productService.addProduct(token, productDto);
+    ResponseEntity<?> addProduct(@RequestBody ProductDto productDto) {
+        return productService.addProduct(productDto);
     }
 
 //    @PostMapping("/add/variation")
@@ -28,18 +28,18 @@ public class ProductController {
 //    }
 
     @PostMapping("/view/{id}/seller")
-    ResponseEntity<?> viewProduct(@RequestHeader String token, @PathVariable Long id) {
-        return productService.viewProduct(token, id);
+    ResponseEntity<?> viewProduct( @PathVariable Long id) {
+        return productService.viewProduct( id);
     }
 
     @PostMapping("/all/seller")
-    ResponseEntity<List<ProductResponseDto>> viewALl(HttpServletRequest request) {
-        return productService.viewAllProduct(request);
+    ResponseEntity<List<ProductResponseDto>> viewALl( ) {
+        return productService.viewAllProduct();
     }
 
-    @PostMapping("/delete/{id}/seller")
-    ResponseEntity<?> deleteProduct(HttpServletRequest request, @PathVariable Long id) {
-        return productService.deleteProduct(request, id);
+    @DeleteMapping("/delete/{id}/seller")
+    ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+        return productService.deleteProduct(id);
     }
 
     @PostMapping("/update/{productId}/seller")
