@@ -25,7 +25,7 @@ public class ImageServiceImpl implements ImageService {
                 extension.equals(".bmp")) {
 
             String fileName = id + name.substring(name.lastIndexOf("."));
-            String filePath = path + File.separator + fileName;
+            String filePath = basePath + path + File.separator + fileName;
             File f = new File(path);
 
             if (!f.exists()) {
