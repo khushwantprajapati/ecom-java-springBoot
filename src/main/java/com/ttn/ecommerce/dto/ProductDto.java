@@ -17,5 +17,4 @@ public class ProductDto {
     private Boolean isReturnable;
 
 
-
 }

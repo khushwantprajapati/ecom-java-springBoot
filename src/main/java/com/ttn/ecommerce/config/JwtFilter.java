@@ -40,7 +40,7 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             if (StringUtils.hasText(token)) {
                 Token accessToken = tokenRepository.findByJwt(token).orElse(null);
-                if(accessToken == null){
+                if (accessToken == null) {
                     response.setStatus(HttpStatus.BAD_REQUEST.value());
                     response.getWriter().write("Token not found");
                     return;

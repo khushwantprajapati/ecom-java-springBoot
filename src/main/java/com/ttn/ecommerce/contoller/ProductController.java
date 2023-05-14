@@ -3,7 +3,6 @@ package com.ttn.ecommerce.contoller;
 import com.ttn.ecommerce.dto.ProductDto;
 import com.ttn.ecommerce.dto.ProductResponseDto;
 import com.ttn.ecommerce.service.product.ProductService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,12 +27,12 @@ public class ProductController {
 //    }
 
     @PostMapping("/view/{id}/seller")
-    ResponseEntity<?> viewProduct( @PathVariable Long id) {
-        return productService.viewProduct( id);
+    ResponseEntity<?> viewProduct(@PathVariable Long id) {
+        return productService.viewProduct(id);
     }
 
     @PostMapping("/all/seller")
-    ResponseEntity<List<ProductResponseDto>> viewALl( ) {
+    ResponseEntity<List<ProductResponseDto>> viewALl() {
         return productService.viewAllProduct();
     }
 
@@ -68,11 +67,16 @@ public class ProductController {
     ResponseEntity<?> viewProductAdmin(@PathVariable Long id) {
         return productService.getProductAdmin(id);
     }
-
     @GetMapping("/view/all/admin")
-    ResponseEntity<?> viewAllProductAdmin() {
-        return productService.viewAllProducts();
+    public ResponseEntity<List<ProductResponseDto>> viewAllProductAdmin(@RequestParam(required = false) Integer max,
+                                                                        @RequestParam(required = false) Integer offset,
+                                                                        @RequestParam(required = false) String sort,
+                                                                        @RequestParam(required = false) String order,
+                                                                        @RequestParam(required = false) Long categoryId,
+                                                                        @RequestParam(required = false) Long sellerId) {
+        return productService.viewAllProducts(max, offset, sort, order, categoryId, sellerId);
     }
+
 
     @PutMapping("/admin/{id}/deactivate")
     public ResponseEntity<?> deactivateProduct(@PathVariable Long id) {

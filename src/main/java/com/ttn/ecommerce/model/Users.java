@@ -7,7 +7,6 @@ import lombok.Data;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -39,8 +38,8 @@ public class Users {
 
     private LocalDateTime passwordUpdateDate;
 
-    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private List<Role> role = new ArrayList<>();
+    @ManyToMany(fetch = FetchType.EAGER)
+    private List<Role> role;
 
     @OneToMany
     private List<Address> addresses;

@@ -2,27 +2,24 @@ package com.ttn.ecommerce.service.product;
 
 import com.ttn.ecommerce.dto.ProductDto;
 import com.ttn.ecommerce.dto.ProductResponseDto;
+import com.ttn.ecommerce.dto.ProductVariationRequest;
 import com.ttn.ecommerce.exception.GenericException;
-import com.ttn.ecommerce.model.Category;
-import com.ttn.ecommerce.model.Product;
-import com.ttn.ecommerce.model.Seller;
+import com.ttn.ecommerce.model.*;
 import com.ttn.ecommerce.repository.*;
 import com.ttn.ecommerce.service.EmailSenderService;
 import com.ttn.ecommerce.util.JwtUtils;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,6 +46,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
+
+    @Value("${admin.email}")
+    String email;
+
 
     @Override
     public ResponseEntity<?> addProduct(ProductDto productDto) {
@@ -96,11 +97,13 @@ public class ProductServiceImpl implements ProductService {
                 + "Seller: " + product.getSeller().getFirstName();
 
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo("Khushwant5265@gmail.com");
+        message.setTo(email);
         message.setSubject(subject);
         message.setText(body);
         emailSenderService.sendEmail(message);
     }
+
+
 
     @Override
     public ResponseEntity<?> viewProduct(Long id) {
@@ -179,7 +182,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<?> deleteProduct( Long id) {
+    public ResponseEntity<?> deleteProduct(Long id) {
 
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         // Retrieve the seller based on the email
@@ -232,7 +235,7 @@ public class ProductServiceImpl implements ProductService {
 
         //Seller seller = sellerRepository.findByEmailIgnoreCase(email);
 
-        Product product = productRepository.findByIdAndIsDeletedAndIsActive(id, false, true);
+        Product product = productRepository.findByIdAndIsDeletedFalseAndIsActiveIsTrue(id);
         if (product == null) {
             throw new GenericException("Invalid product ID or product not available", HttpStatus.NOT_FOUND);
         }
@@ -343,8 +346,36 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<List<ProductResponseDto>> viewAllProducts() {
-        List<Product> products = productRepository.findAll();
+    public ResponseEntity<List<ProductResponseDto>> viewAllProducts(Integer max, Integer offset, String sort, String order, Long categoryId, Long sellerId) {
+        // Set default value for max if not provided
+        if (max == null && offset == null) {
+            max = 10;
+            offset = 0;
+        }
+
+        Pageable pageable;
+
+        if (sort != null && order != null) {
+            Sort.Direction direction = Sort.Direction.fromString(order.toUpperCase());
+            pageable = PageRequest.of(offset, max, direction, sort);
+        } else {
+            pageable = PageRequest.of(offset, max);
+        }
+
+        List<Product> products;
+
+        if (categoryId != null) {
+            Category category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new GenericException("Category not found with id: " + categoryId));
+            products = productRepository.findAllByCategory(category, pageable);
+        } else if (sellerId != null) {
+            Seller seller = sellerRepository.findById(sellerId)
+                    .orElseThrow(() -> new GenericException("User not found with id: " + sellerId));
+            products = productRepository.findAllBySeller(seller, pageable);
+        } else {
+            products = productRepository.findAll(pageable).getContent();
+        }
+
         List<ProductResponseDto> responseDtoList = new ArrayList<>();
 
         for (Product product : products) {
@@ -358,13 +389,13 @@ public class ProductServiceImpl implements ProductService {
             responseDto.setIsActive(product.getIsActive());
             responseDto.setIsDeleted(product.getIsDeleted());
 
-
-
             responseDtoList.add(responseDto);
         }
 
         return ResponseEntity.ok().body(responseDtoList);
     }
+
+
 
 
     @Override

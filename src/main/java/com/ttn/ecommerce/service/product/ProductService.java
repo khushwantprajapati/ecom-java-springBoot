@@ -2,7 +2,6 @@ package com.ttn.ecommerce.service.product;
 
 import com.ttn.ecommerce.dto.ProductDto;
 import com.ttn.ecommerce.dto.ProductResponseDto;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
@@ -14,7 +13,7 @@ public interface ProductService {
 
     ResponseEntity<?> viewProduct(Long id);
 
-    ResponseEntity<List<ProductResponseDto>> viewAllProduct( );
+    ResponseEntity<List<ProductResponseDto>> viewAllProduct();
 
     ResponseEntity<?> deleteProduct(Long id);
 
@@ -29,7 +28,7 @@ public interface ProductService {
 
     ResponseEntity<?> getProductAdmin(Long id);
 
-    ResponseEntity<List<ProductResponseDto>> viewAllProducts();
+    ResponseEntity<List<ProductResponseDto>> viewAllProducts(Integer max, Integer offset, String sort, String order, Long categoryId, Long sellerId);
 
     ResponseEntity<?> deactivateProduct(Long id);
 

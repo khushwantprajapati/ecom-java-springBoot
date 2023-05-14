@@ -36,4 +36,15 @@ public class Category {
     @JsonIgnoreProperties(value = {"category", "categoryMetadataField"})
     private List<CategoryMetadataFieldValues> categoryMetadataFieldValues;
 
+
+    public List<CategoryMetadataField> getMetadataFields() {
+        List<CategoryMetadataField> metadataFields = new ArrayList<>();
+
+        for (CategoryMetadataFieldValues value : this.getCategoryMetadataFieldValues()) {
+            metadataFields.add(value.getCategoryMetadataField());
+        }
+
+        return metadataFields;
+    }
+
 }

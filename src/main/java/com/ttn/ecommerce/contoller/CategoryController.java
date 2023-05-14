@@ -70,4 +70,8 @@ public class CategoryController {
         return categoryService.getCategoriesCustomer(categoryId);
     }
 
+    @GetMapping("/all/seller")
+    public ResponseEntity<List<CategoryDto>> getAllCategory() {
+        return categoryService.getAllChildCategories();
+    }
 }

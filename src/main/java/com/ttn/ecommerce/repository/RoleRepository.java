@@ -13,4 +13,6 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
     Integer countAll();
 
     Role findByAuthority(Authority role);
+
+    boolean existsByAuthority(Authority authority);
 }

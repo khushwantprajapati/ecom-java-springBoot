@@ -28,4 +28,6 @@ public interface CategoryService {
 
 
     ResponseEntity<List<CategoryDto>> getCategoriesCustomer(Long categoryId);
+
+    ResponseEntity<List<CategoryDto>> getAllChildCategories();
 }

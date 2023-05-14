@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {
@@ -64,7 +63,6 @@ public class CategoryServiceImpl implements CategoryService {
         return ResponseEntity.status(HttpStatus.CREATED).body("Metadata field with ID "
                 + metadata.getId() + " created successfully.");
     }
-
 
 
     @Override
@@ -231,32 +229,60 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public ResponseEntity<List<CategoryDto>> getCategoriesCustomer(Long categoryId) {
         List<Category> categories;
+
         if (categoryId == null) {
-            // no category ID provided, so return all root level categories
+            // No category ID provided, so return all root level categories
             categories = categoryRepository.findAllByParentCategoryIsNull();
         } else {
-            // category ID provided, so return all immediate child categories
+            // Category ID provided, so return all immediate child categories
             Optional<Category> categoryOptional = categoryRepository.findById(categoryId);
+
             if (categoryOptional.isEmpty()) {
+                // Category with given ID not found
                 return ResponseEntity.notFound().build();
             }
+
             Category category = categoryOptional.get();
             categories = category.getChildCategories();
         }
 
-        // convert categories to DTOs
-        List<CategoryDto> categoryDtos = categories.stream()
-                .map(category -> {
-                    CategoryDto categoryDto = new CategoryDto();
-                    categoryDto.setName(category.getName());
-                    if (category.getParentCategory() != null) {
-                        categoryDto.setParentCategoryId(category.getParentCategory().getId());
-                    }
-                    return categoryDto;
-                })
-                .collect(Collectors.toList());
+        // Convert categories to DTOs
+        List<CategoryDto> categoryDtos = new ArrayList<>();
+
+        for (Category category : categories) {
+            CategoryDto categoryDto = new CategoryDto();
+            categoryDto.setName(category.getName());
+
+            if (category.getParentCategory() != null) {
+                categoryDto.setParentCategoryId(category.getParentCategory().getId());
+            }
+
+            categoryDtos.add(categoryDto);
+        }
 
         return ResponseEntity.ok().body(categoryDtos);
     }
+
+    // list all categories seller
+    @Override
+    public ResponseEntity<List<CategoryDto>> getAllChildCategories() {
+        List<Category> childCategories = categoryRepository.findAllByChildCategoriesIsNull();
+        List<CategoryDto> categoryDtoList = new ArrayList<>();
+
+        if (childCategories.isEmpty()) {
+            throw new GenericException("No child categories found.",HttpStatus.NOT_FOUND);
+        }
+
+        for (Category category : childCategories) {
+            CategoryDto categoryDto = new CategoryDto();
+
+            categoryDto.setName(category.getName());
+
+            categoryDtoList.add(categoryDto);
+        }
+
+        return ResponseEntity.ok().body(categoryDtoList);
+    }
+
 
 }
