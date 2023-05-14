@@ -21,20 +21,22 @@ public class ProductController {
         return productService.addProduct(productDto);
     }
 
-//    @PostMapping("/add/variation")
-//    public ResponseEntity<?> addProductVariation(@RequestBody ProductVariationDto productVariationDto) {
-//    return productService.addProductVariation(productVariationDto);
-//    }
 
     @PostMapping("/view/{id}/seller")
     ResponseEntity<?> viewProduct(@PathVariable Long id) {
         return productService.viewProduct(id);
     }
 
-    @PostMapping("/all/seller")
-    ResponseEntity<List<ProductResponseDto>> viewALl() {
-        return productService.viewAllProduct();
+    @GetMapping("/all")
+    public ResponseEntity<List<ProductResponseDto>> viewAllProductsForAllSellers(
+            @RequestParam(required = false) Integer max,
+            @RequestParam(required = false) Integer offset,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String order
+    ) {
+        return productService.viewAllProduct(max, offset, sort, order);
     }
+
 
     @DeleteMapping("/delete/{id}/seller")
     ResponseEntity<?> deleteProduct(@PathVariable Long id) {
@@ -54,9 +56,14 @@ public class ProductController {
     }
 
     @GetMapping("/view/category/{categoryId}/customer")
-    public ResponseEntity<List<ProductDto>> getAllProductsByCategory(@PathVariable Long categoryId) {
-        return productService.getAllProductsByCategory(categoryId);
+    public ResponseEntity<List<ProductDto>> getAllProductsByCategory(@PathVariable Long categoryId,
+                                                                     @RequestParam(required = false) Integer max,
+                                                                     @RequestParam(required = false) Integer offset,
+                                                                     @RequestParam(required = false) String sort,
+                                                                     @RequestParam(required = false) String order) {
+        return productService.getAllProductsByCategory(categoryId, max, offset, sort, order);
     }
+
 
     @GetMapping("/view/similar/{id}/customer")
     ResponseEntity<?> viewSimilarProduct(@PathVariable Long id) {

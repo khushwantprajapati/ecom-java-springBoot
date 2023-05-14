@@ -2,9 +2,10 @@ package com.ttn.ecommerce.service.product;
 
 import com.ttn.ecommerce.dto.ProductDto;
 import com.ttn.ecommerce.dto.ProductResponseDto;
-import com.ttn.ecommerce.dto.ProductVariationRequest;
 import com.ttn.ecommerce.exception.GenericException;
-import com.ttn.ecommerce.model.*;
+import com.ttn.ecommerce.model.Category;
+import com.ttn.ecommerce.model.Product;
+import com.ttn.ecommerce.model.Seller;
 import com.ttn.ecommerce.repository.*;
 import com.ttn.ecommerce.service.EmailSenderService;
 import com.ttn.ecommerce.util.JwtUtils;
@@ -19,7 +20,10 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -65,6 +69,12 @@ public class ProductServiceImpl implements ProductService {
             throw new GenericException("Invalid seller", HttpStatus.NOT_FOUND);
         }
 
+        // Check if a product with the same name already exists for the seller in the same category
+        Optional<Product> existingProduct = productRepository.findByNameAndCategoryAndSeller(productDto.getName(), productDto.getCategory(), seller);
+        if (existingProduct.isPresent()) {
+            return ResponseEntity.badRequest().body("A product with the same name already exists for the seller in the same category");
+        }
+
         Product product = new Product();
         product.setBrand(productDto.getBrand());
         product.setName(productDto.getName());
@@ -75,24 +85,25 @@ public class ProductServiceImpl implements ProductService {
 
         Optional<Category> category = categoryRepository.findById(productDto.getCategory()); // Find category by ID
         if (category.isEmpty()) { // Check if category is empty
-            return ResponseEntity.badRequest().body("Invalid category name"); // Return bad request response if category is empty
+            return ResponseEntity.badRequest().body("Invalid category Id"); // Return bad request response if category is empty
         }
         product.setCategory(category.get()); // Set category for product
 
-        productAddedMail(product); // Send email to admin about newly added product
+        productAddedMail(productDto); // Send email to admin about newly added product
         productRepository.save(product); // Save product in repository
 
         return ResponseEntity.status(HttpStatus.CREATED).body("Product added successfully"); // Return success response
     }
 
 
-    public void productAddedMail(Product product) {
+
+
+    public void productAddedMail(ProductDto product) {
         String subject = "New Product Added: " + product.getName();
         String body = "Hello,\n\nA new product has been added and requires your attention.\n\n"
                 + "Product Details:\n\n"
                 + "Name: " + product.getName() + "\n"
                 + "Brand: " + product.getBrand() + "\n"
-                + "Category: " + product.getCategory().getName() + "\n"
                 + "Description: " + product.getDescription() + "\n"
                 + "Seller: " + product.getSeller().getFirstName();
 
@@ -102,7 +113,6 @@ public class ProductServiceImpl implements ProductService {
         message.setText(body);
         emailSenderService.sendEmail(message);
     }
-
 
 
     @Override
@@ -142,43 +152,59 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<List<ProductResponseDto>> viewAllProduct() {
+    public ResponseEntity<List<ProductResponseDto>> viewAllProduct(Integer max, Integer offset, String sort, String order) {
 
+        // Get the email of the authenticated seller from the security context
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        // Retrieve seller object from database using the email
+        // Find the seller in the database using the email
         Seller seller = sellerRepository.findByEmailIgnoreCase(email);
 
-        // Check if seller exists, throw exception if not
+        // Throw an exception if the seller is not found
         if (Objects.isNull(seller)) {
             throw new GenericException("Invalid seller", HttpStatus.NOT_FOUND);
         }
 
-        // Retrieve list of products created by the seller, excluding the deleted products
-        List<Product> products = productRepository.findBySellerAndIsDeletedFalse(seller);
-        // Convert the list of Product objects to a list of ProductResponseDto objects using stream and map
-        List<ProductResponseDto> productResponseDtoList = products.stream()
-                .map(product -> {
-                    // Create a new ProductResponseDto object and set its properties from the Product object
-                    ProductResponseDto productDto = new ProductResponseDto();
-                    productDto.setId(product.getId());
-                    productDto.setName(product.getName());
-                    productDto.setDescription(product.getDescription());
-                    productDto.setBrand(product.getBrand());
-                    productDto.setIsCancellable(product.getIsCancellable());
-                    productDto.setIsReturnable(product.getIsReturnable());
-                    productDto.setIsActive(product.getIsActive());
-                    productDto.setIsDeleted(product.getIsDeleted());
-                    // Set category details for the product response DTO using a static method of CategoryDto class
-//                    productDto.setCategoryDetails(CategoryDto.fromCategory(product.getCategory()));
-                    // Return the ProductResponseDto object
-                    return productDto;
-                })
-                .collect(Collectors.toList());
+        // Set default values for max and offset if not provided
+        if (max == null && offset == null) {
+            max = 10;
+            offset = 0;
+        }
+
+        // Create a pageable object with sorting and ordering if provided, otherwise use default values
+        Pageable pageable;
+        if (sort != null && order != null) {
+            Sort.Direction direction = Sort.Direction.fromString(order.toUpperCase());
+            pageable = PageRequest.of(offset, max, direction, sort);
+        } else {
+            pageable = PageRequest.of(offset, max);
+        }
+
+        // Find all products using the pageable object
+        List<Product> products = productRepository.findAll(pageable).getContent();
+
+        // Create a list of ProductResponseDto objects
+        List<ProductResponseDto> responseDtoList = new ArrayList<>();
+        for (Product product : products) {
+            // Create a new ProductResponseDto object and set its properties from the Product object
+            ProductResponseDto responseDto = new ProductResponseDto();
+            responseDto.setId(product.getId());
+            responseDto.setName(product.getName());
+            responseDto.setDescription(product.getDescription());
+            responseDto.setBrand(product.getBrand());
+            responseDto.setIsCancellable(product.getIsCancellable());
+            responseDto.setIsReturnable(product.getIsReturnable());
+            responseDto.setIsActive(product.getIsActive());
+            responseDto.setIsDeleted(product.getIsDeleted());
+
+            // Add the ProductResponseDto object to the list
+            responseDtoList.add(responseDto);
+        }
 
         // Return the list of ProductResponseDto objects in the response body with HTTP status code 200 OK
-        return ResponseEntity.status(HttpStatus.OK).body(productResponseDtoList);
+        return ResponseEntity.ok().body(responseDtoList);
     }
+
 
 
     @Override
@@ -191,10 +217,13 @@ public class ProductServiceImpl implements ProductService {
         // Retrieve the product by the ID and the seller
         Product product = productRepository.findBySellerAndId(seller, id);
 
-        // Check if the product exists
+        // Check if the product exists and is not already deleted
         if (Objects.isNull(product)) {
             // If the product does not exist, return a 404 error response
             throw new GenericException("Product not found", HttpStatus.NOT_FOUND);
+        } else if (product.getIsDeleted()) {
+            // If the product is already deleted, return a 400 error response
+            throw new GenericException("Product already deleted", HttpStatus.BAD_REQUEST);
         }
 
         // Delete the product
@@ -206,29 +235,68 @@ public class ProductServiceImpl implements ProductService {
     }
 
 
+
     @Override
     public ResponseEntity<?> updateProduct(Long productId, ProductDto productDto) {
-        Product product = productRepository.findById(productId).orElse(null);
-        if (product == null) {
+        // Find the product to update
+        Optional<Product> optionalProduct = productRepository.findById(productId);
+        if (optionalProduct.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        product.setName(productDto.getName());
-        product.setBrand(productDto.getBrand());
-        product.setDescription(productDto.getDescription());
-        product.setIsReturnable(productDto.getIsReturnable());
-        product.setIsCancellable(productDto.getIsCancellable());
+        Product product = optionalProduct.get();
 
-        Optional<Category> category = categoryRepository.findById(productDto.getCategory());
-        if (category.isEmpty()) {
-            return ResponseEntity.badRequest().body("Invalid category name");
+        // Check if the seller of the product is the current authenticated seller
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!product.getSeller().getEmail().equalsIgnoreCase(email)) {
+            throw new GenericException("Unauthorized", HttpStatus.UNAUTHORIZED);
         }
-        product.setCategory(category.get());
 
+        // Check if the product name already exists for the seller
+        if (productDto.getName() != null) {
+            // Check if the product name already exists for the seller in the same category
+            Optional<Product> existingProduct;
+            if (productDto.getCategory() != null) {
+                existingProduct = productRepository.findByNameAndCategoryAndSeller(productDto.getName(), productDto.getCategory(), product.getSeller());
+            } else {
+                existingProduct = productRepository.findByNameAndSeller(productDto.getName(), product.getSeller());
+            }
+            if (existingProduct.isPresent()) {
+                throw new GenericException("Product name already exists for the seller", HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        // Update product fields that are not null in the DTO
+        if (productDto.getName() != null) {
+            product.setName(productDto.getName());
+        }
+        if (productDto.getBrand() != null) {
+            product.setBrand(productDto.getBrand());
+        }
+        if (productDto.getDescription() != null) {
+            product.setDescription(productDto.getDescription());
+        }
+        if (productDto.getIsReturnable() != null) {
+            product.setIsReturnable(productDto.getIsReturnable());
+        }
+        if (productDto.getIsCancellable() != null) {
+            product.setIsCancellable(productDto.getIsCancellable());
+        }
+        if (productDto.getCategory() != null) {
+            Optional<Category> optionalCategory = categoryRepository.findById(productDto.getCategory());
+            if (optionalCategory.isEmpty()) {
+                return ResponseEntity.badRequest().body("Invalid category name");
+            }
+            product.setCategory(optionalCategory.get());
+        }
+
+        // Save the updated product
         productRepository.save(product);
 
-        return ResponseEntity.ok().build();
+        // Return a success response
+        return ResponseEntity.ok().body("Product updated successfully");
     }
+
 
     @Override
     public ResponseEntity<?> viewProductCustomer(Long id) {
@@ -259,18 +327,41 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<List<ProductDto>> getAllProductsByCategory(Long categoryId) {
+    public ResponseEntity<List<ProductDto>> getAllProductsByCategory(Long categoryId, Integer max, Integer offset, String sort, String order) {
+        // Set default values for max and offset if not provided
+        if (max == null) {
+            max = 10;
+        }
+        if (offset == null) {
+            offset = 0;
+        }
+
+        // Find category by ID
         Category category = categoryRepository.findById(categoryId).orElse(null);
         if (category == null) {
+            // Return 404 Not Found response if category not found
             return ResponseEntity.notFound().build();
         }
 
-        List<Product> products = productRepository.findByCategory(category);
-        List<ProductDto> productDtoList = new ArrayList<>();
+        Pageable pageable;
 
+        if (sort != null && order != null) {
+            Sort.Direction direction = Sort.Direction.fromString(order.toUpperCase());
+            pageable = PageRequest.of(offset, max, direction, sort);
+        } else {
+            pageable = PageRequest.of(offset, max);
+        }
+
+        // Create pageable object for pagination and sorting
+
+
+        // Retrieve products by category and pageable object
+        List<Product> products = productRepository.findAllByCategory(category, pageable);
+
+        // Convert products to ProductDto objects
+        List<ProductDto> productDtoList = new ArrayList<>();
         for (Product product : products) {
             ProductDto productDto = new ProductDto();
-
             productDto.setName(product.getName());
             productDto.setDescription(product.getDescription());
             productDto.setBrand(product.getBrand());
@@ -278,8 +369,11 @@ public class ProductServiceImpl implements ProductService {
             productDtoList.add(productDto);
         }
 
+        // Return 200 OK response with list of ProductDto objects
         return ResponseEntity.ok().body(productDtoList);
     }
+
+
 
 
     public ResponseEntity<List<ProductDto>> getSimilarProducts(Long productId) {
@@ -394,8 +488,6 @@ public class ProductServiceImpl implements ProductService {
 
         return ResponseEntity.ok().body(responseDtoList);
     }
-
-
 
 
     @Override

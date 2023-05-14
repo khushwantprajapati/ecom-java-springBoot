@@ -13,7 +13,7 @@ public interface ProductService {
 
     ResponseEntity<?> viewProduct(Long id);
 
-    ResponseEntity<List<ProductResponseDto>> viewAllProduct();
+    ResponseEntity<List<ProductResponseDto>> viewAllProduct(Integer max, Integer offset, String sort, String order);
 
     ResponseEntity<?> deleteProduct(Long id);
 
@@ -21,7 +21,7 @@ public interface ProductService {
 
     ResponseEntity<?> viewProductCustomer(Long id);
 
-    ResponseEntity<List<ProductDto>> getAllProductsByCategory(Long categoryId);
+    ResponseEntity<List<ProductDto>> getAllProductsByCategory(Long categoryId, Integer max, Integer offset, String sort, String order);
 
     ResponseEntity<List<ProductDto>> getSimilarProducts(Long productId);
 
