@@ -19,7 +19,7 @@ public class Address {
     private String state;
     private String country;
     private String addressLine;
-    private Integer zipCode;
+    private String zipCode;
     private String label;
 
     @ManyToOne

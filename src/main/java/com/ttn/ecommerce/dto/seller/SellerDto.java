@@ -14,8 +14,12 @@ public class SellerDto {
     @Email(message = "E-mail is not valid")
     private String email;
 
+    @NotBlank(message = "First name is mandatory")
     private String firstName;
 
+    private String middleName;
+
+    @NotBlank(message = "Last name is mandatory")
     private String lastName;
 
     @NotBlank(message = "Password in mandatory")
@@ -35,15 +39,21 @@ public class SellerDto {
 
     private String companyContact;
 
-    private String city;
-
-    private String state;
-
-    private String country;
-
+    @NotBlank(message = "Address line is mandatory")
     private String addressLine;
 
-    private Integer zipCode;
+    @NotBlank(message = "City is mandatory")
+    private String city;
+
+    @NotBlank(message = "State is mandatory")
+    private String state;
+
+    @NotBlank(message = "Country is mandatory")
+    private String country;
+
+    @NotBlank(message = "Zip code is mandatory")
+    @Pattern(regexp = "^\\d{5}(?:[-\\s]\\d{4})?$", message = "Zip code is not valid")
+    private String zipCode;
 
     private String label;
 

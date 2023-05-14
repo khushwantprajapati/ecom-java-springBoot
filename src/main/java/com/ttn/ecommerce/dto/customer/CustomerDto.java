@@ -19,6 +19,8 @@ public class CustomerDto {
     @NotBlank(message = "First name is mandatory")
     private String firstName;
 
+    private String middleName;
+
     @NotBlank(message = "Last name is mandatory")
     private String lastName;
 

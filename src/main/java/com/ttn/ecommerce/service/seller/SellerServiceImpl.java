@@ -1,12 +1,14 @@
 package com.ttn.ecommerce.service.seller;
 
 import com.ttn.ecommerce.dto.AddressDto;
+import com.ttn.ecommerce.dto.ChangePasswordDto;
 import com.ttn.ecommerce.dto.PasswordDto;
 import com.ttn.ecommerce.dto.seller.SellerDto;
 import com.ttn.ecommerce.dto.seller.SellerProfileDto;
 import com.ttn.ecommerce.enums.Authority;
 import com.ttn.ecommerce.exception.GenericException;
 import com.ttn.ecommerce.model.Address;
+import com.ttn.ecommerce.model.Customer;
 import com.ttn.ecommerce.model.Role;
 import com.ttn.ecommerce.model.Seller;
 import com.ttn.ecommerce.repository.AddressRepository;
@@ -129,11 +131,11 @@ public class SellerServiceImpl implements SellerService {
         if (sellerProfileDto.getFirstName() != null) {
             seller.setFirstName(sellerProfileDto.getFirstName());
         }
+        if (sellerProfileDto.getMiddleName() != null) {
+            seller.setMiddleName(sellerProfileDto.getMiddleName());
+        }
         if (sellerProfileDto.getLastName() != null) {
             seller.setLastName(sellerProfileDto.getLastName());
-        }
-        if (sellerProfileDto.getCompanyName() != null) {
-            seller.setCompanyName(sellerProfileDto.getCompanyName());
         }
         if (sellerProfileDto.getCompanyContact() != null) {
             seller.setCompanyContact(sellerProfileDto.getCompanyContact());
@@ -147,21 +149,23 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
-    public ResponseEntity<?> updatePassword(PasswordDto passwordDto) {
+    public ResponseEntity<?> updatePassword(ChangePasswordDto passwordDto) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Seller seller = sellerRepository.findByEmailIgnoreCase(email);
-        if (seller == null) {
-            throw new GenericException("Customer not found", HttpStatus.UNAUTHORIZED);
-        }
+        Seller customer = sellerRepository.findByEmailIgnoreCase(email);
 
         if (!passwordDto.getPassword().equals(passwordDto.getConfirmPassword())) {
             throw new GenericException("Password and confirm password do not match.", HttpStatus.BAD_REQUEST);
         }
 
-        seller.setPassword(passwordEncoder.encode(passwordDto.getPassword()));
-        sellerRepository.save(seller);
-        return ResponseEntity.status(HttpStatus.OK).body("Password updated successfully");
+        if (!passwordEncoder.matches(passwordDto.getOldPassword(), customer.getPassword())) {
+            throw new GenericException("Old password is incorrect.", HttpStatus.BAD_REQUEST);
+        }
+
+        customer.setPassword(passwordEncoder.encode(passwordDto.getPassword()));
+        sellerRepository.save(customer);
+        return ResponseEntity.ok("Password updated successfully");
     }
+
 
 
     @Override
@@ -170,23 +174,37 @@ public class SellerServiceImpl implements SellerService {
         Seller seller = sellerRepository.findByEmailIgnoreCase(email);
 
         if (seller == null) {
-            throw new GenericException("Customer not found", HttpStatus.UNAUTHORIZED);
+            throw new GenericException("Seller not found", HttpStatus.UNAUTHORIZED);
         }
 
         Address address = addressRepository.findAddressBySeller(seller);
         if (address == null) {
             throw new GenericException("Address not found", HttpStatus.NOT_FOUND);
-
         }
-        address.setAddressLine(addressDto.getAddressLine());
-        address.setCity(addressDto.getCity());
-        address.setState(addressDto.getState());
-        address.setCountry(addressDto.getCountry());
-        address.setZipCode(addressDto.getZipCode());
+
+        if (addressDto.getAddressLine() != null) {
+            address.setAddressLine(addressDto.getAddressLine());
+        }
+        if (addressDto.getCity() != null) {
+            address.setCity(addressDto.getCity());
+        }
+        if (addressDto.getState() != null) {
+            address.setState(addressDto.getState());
+        }
+        if (addressDto.getCountry() != null) {
+            address.setCountry(addressDto.getCountry());
+        }
+        if (addressDto.getZipCode() != null) {
+            address.setZipCode(addressDto.getZipCode());
+        }
+        if (addressDto.getLabel() != null) {
+            address.setLabel(addressDto.getLabel());
+        }
 
         Address savedAddress = addressRepository.save(address);
         return new ResponseEntity<>(savedAddress, HttpStatus.CREATED);
     }
+
 
 
 }

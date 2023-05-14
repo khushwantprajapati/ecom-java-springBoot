@@ -4,6 +4,7 @@ import com.ttn.ecommerce.dto.LoginDto;
 import com.ttn.ecommerce.dto.PasswordDto;
 import com.ttn.ecommerce.service.user.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,7 +21,7 @@ public class UserController {
     UserService userServiceImpl;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginDto loginDto) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginDto loginDto) {
         return userServiceImpl.login(loginDto);
     }
 
@@ -35,7 +36,7 @@ public class UserController {
     }
 
     @PostMapping("/reset/password")
-    public ResponseEntity<?> validateResetToken(@RequestParam String token, @RequestBody PasswordDto passwordDto) {
+    public ResponseEntity<?> validateResetToken(@RequestParam String token,@Valid @RequestBody PasswordDto passwordDto) {
         return userServiceImpl.reset(token, passwordDto);
     }
 }

@@ -22,17 +22,6 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-//        httpSecurity.csrf()
-//                .disable()
-//                .authorizeHttpRequests()
-//                .anyRequest()
-//                .permitAll()
-//                .and()
-//                .sessionManagement()
-//                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-//                .and()
-//                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-//                .httpBasic();
 
         httpSecurity.csrf()
                 .disable()
@@ -43,10 +32,14 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeHttpRequests()
-                .requestMatchers("/user/**", "customer/create", "seller/create", "/admin/**").permitAll()
-                .requestMatchers("customer/activate").permitAll()
+                .requestMatchers("/user/**"
+                        , "customer/register"
+                        ,"customer/resend/activate/{}"
+                        , "seller/register"
+                        ,"customer/activate").permitAll()
                 .requestMatchers("/customer/**").hasAnyAuthority("CUSTOMER")
-                .requestMatchers("/seller/**", "/product/**", "/category/**").hasAnyAuthority("SELLER")
+                .requestMatchers("/admin/**").hasAnyAuthority("ADMIN")
+                .requestMatchers("/seller/**").hasAnyAuthority("SELLER")
                 .anyRequest()
                 .authenticated()
                 .and()
@@ -63,15 +56,6 @@ public class SecurityConfig {
     }
 
 
-//    @Bean
-//    public DaoAuthenticationProvider authenticationProvider() {
-//        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-//
-//        authProvider.setUserDetailsService(userDetailsService);
-//        authProvider.setPasswordEncoder(passwordEncoder());
-//
-//        return authProvider;
-//    }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)

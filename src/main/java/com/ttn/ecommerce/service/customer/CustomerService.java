@@ -1,10 +1,13 @@
 package com.ttn.ecommerce.service.customer;
 
 import com.ttn.ecommerce.dto.AddressDto;
+import com.ttn.ecommerce.dto.ChangePasswordDto;
 import com.ttn.ecommerce.dto.PasswordDto;
 import com.ttn.ecommerce.dto.customer.CustomerDto;
 import com.ttn.ecommerce.dto.customer.CustomerProfileDto;
 import org.springframework.http.ResponseEntity;
+
+import java.util.List;
 
 public interface CustomerService {
     ResponseEntity<String> createAccount(CustomerDto customerDto);
@@ -17,11 +20,13 @@ public interface CustomerService {
 
     ResponseEntity<?> viewProfile();
 
-    ResponseEntity<?> updateUserProfile(CustomerProfileDto customerProfileDto);
+    ResponseEntity<?> updateUserProfile(CustomerProfileDto customerDto);
 
-    ResponseEntity<?> updatePassword(PasswordDto passwordDto);
+    ResponseEntity<?> updatePassword(ChangePasswordDto passwordDto);
 
     ResponseEntity<?> createAddress(AddressDto addressDto);
+
+    ResponseEntity<List<AddressDto>> getAllAddresses();
 
     ResponseEntity<?> updateAddress(Long id, AddressDto addressDto);
 

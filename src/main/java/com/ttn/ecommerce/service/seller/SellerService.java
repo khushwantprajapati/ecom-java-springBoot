@@ -1,6 +1,7 @@
 package com.ttn.ecommerce.service.seller;
 
 import com.ttn.ecommerce.dto.AddressDto;
+import com.ttn.ecommerce.dto.ChangePasswordDto;
 import com.ttn.ecommerce.dto.PasswordDto;
 import com.ttn.ecommerce.dto.seller.SellerDto;
 import com.ttn.ecommerce.dto.seller.SellerProfileDto;
@@ -13,7 +14,7 @@ public interface SellerService {
 
     ResponseEntity<?> updateUserProfile(SellerProfileDto sellerProfileDto);
 
-    ResponseEntity<?> updatePassword(PasswordDto passwordDto);
+    ResponseEntity<?> updatePassword(ChangePasswordDto passwordDto);
 
     ResponseEntity<?> updateAddress(AddressDto addressDto);
 
