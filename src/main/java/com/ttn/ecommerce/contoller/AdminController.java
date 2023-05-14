@@ -39,23 +39,23 @@ public class AdminController {
         return adminService.findAllSeller(pageOffset, pageSize, sortBy);
     }
 
-    @PutMapping("/customer/{id}/activate")
+    @PutMapping("/customer/activate/{id}")
     public ResponseEntity<?> activateCustomer(@PathVariable Long id) {
         return adminService.activateUser(id);
     }
 
-    @PutMapping("/customer/{id}/deactivate")
+    @PutMapping("/customer/deactivate/{id}")
     public ResponseEntity<?> deactivateCustomer(@PathVariable Long id) {
         return adminService.deactivateUser(id);
     }
 
 
-    @GetMapping("/view/{id}")
+    @GetMapping("/view/product/{id}")
     ResponseEntity<?> viewProductAdmin(@PathVariable Long id) {
         return productService.viewProductByAdminById(id);
     }
 
-    @GetMapping("/view/all")
+    @GetMapping("/view/product/all")
     public ResponseEntity<List<ProductResponseDto>> viewAllProductAdmin(@RequestParam(required = false) Integer max,
                                                                         @RequestParam(required = false) Integer offset,
                                                                         @RequestParam(required = false) String sort,
@@ -66,24 +66,24 @@ public class AdminController {
     }
 
 
-    @PutMapping("/deactivate/{id}")
+    @PutMapping("/deactivate/product/{id}")
     public ResponseEntity<?> deactivateProduct(@PathVariable Long id) {
         return productService.deactivateProduct(id);
     }
 
-    @PutMapping("/activate/{id}")
+    @PutMapping("/activate/product/{id}")
     public ResponseEntity<?> activateProduct(@PathVariable Long id) {
         return productService.activateProduct(id);
     }
 
 
     // category
-    @PostMapping("/add/metadata")
+    @PostMapping("/add/metadata/field")
     public ResponseEntity<String> addMetadata(@RequestBody MetadataFieldDto metadataFieldDto) {
         return categoryService.addMetadata(metadataFieldDto);
     }
 
-    @GetMapping("/view/metadata")
+    @GetMapping("/view/metadata/field")
     public ResponseEntity<?> getMetadata(
             @RequestParam(required = false, defaultValue = "0") int offset,
             @RequestParam(required = false, defaultValue = "10") int size) {
