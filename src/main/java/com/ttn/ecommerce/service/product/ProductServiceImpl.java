@@ -1,14 +1,16 @@
 package com.ttn.ecommerce.service.product;
 
-import com.ttn.ecommerce.dto.product.ProductDto;
-import com.ttn.ecommerce.dto.product.ProductResponseDto;
+import com.ttn.ecommerce.dto.product.*;
 import com.ttn.ecommerce.exception.GenericException;
 import com.ttn.ecommerce.model.Category;
 import com.ttn.ecommerce.model.Product;
+import com.ttn.ecommerce.model.ProductVariation;
 import com.ttn.ecommerce.model.Seller;
 import com.ttn.ecommerce.repository.*;
 import com.ttn.ecommerce.service.EmailSenderService;
+import com.ttn.ecommerce.service.image.ImageService;
 import com.ttn.ecommerce.util.JwtUtils;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -19,11 +21,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import static org.aspectj.weaver.tools.cache.SimpleCacheFactory.path;
 
 @Service
 
@@ -50,8 +59,14 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
 
+    @Autowired
+    ImageService imageService;
+
     @Value("${admin.email}")
     String email;
+
+    @Value("${products.image.variations}")
+    String path;
 
 
     @Override
@@ -69,7 +84,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         // Check if a product with the same name already exists for the seller in the same category
-        Optional<Product> existingProduct = productRepository.findByNameAndCategoryAndSeller(productDto.getName(), productDto.getCategory(), seller);
+        Optional<Product> existingProduct = productRepository.findByNameAndCategoryIdAndSeller(productDto.getName(), productDto.getCategory(), seller);
         if (existingProduct.isPresent()) {
             return ResponseEntity.badRequest().body("A product with the same name already exists for the seller in the same category");
         }
@@ -101,8 +116,7 @@ public class ProductServiceImpl implements ProductService {
                 + "Product Details:\n\n"
                 + "Name: " + product.getName() + "\n"
                 + "Brand: " + product.getBrand() + "\n"
-                + "Description: " + product.getDescription() + "\n"
-                + "Seller: " + product.getSeller().getFirstName();
+                + "Description: " + product.getDescription() ;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
@@ -252,7 +266,7 @@ public class ProductServiceImpl implements ProductService {
             // Check if the product name already exists for the seller in the same category
             Optional<Product> existingProduct;
             if (productDto.getCategory() != null) {
-                existingProduct = productRepository.findByNameAndCategoryAndSeller
+                existingProduct = productRepository.findByNameAndCategoryIdAndSeller
                         (productDto.getName(), productDto.getCategory(), product.getSeller());
             } else {
                 existingProduct = productRepository.findByNameAndSeller(productDto.getName(), product.getSeller());
@@ -517,6 +531,78 @@ public class ProductServiceImpl implements ProductService {
         productRepository.save(product);
 
         return ResponseEntity.ok().body("Product activated successfully");
+    }
+
+
+    @Override
+    public ResponseEntity addProductVariations(Long id, MultipartFile primaryImage, ProductVariationDto productVariationDto) throws URISyntaxException, IOException, IOException {
+        ProductVariation productVariation=new ProductVariation();
+        productVariation.setProduct(productRepository.findById(id).get());
+        productVariation.setPrice(productVariationDto.getPrice());
+        productVariation.setQuantityAvailable(productVariationDto.getQuantityAvailable());
+        productVariation.setMetadata(productVariationDto.getMetadata());
+        productVariation.setPrimaryImageName("234567uygfc");
+        productVariationRepository.save(productVariation);
+        imageService.uploadImage(path, primaryImage, productVariation.getId().toString());
+
+//        primaryImage.transferTo(new File(BASE_PATH+primaryImage.getOriginalFilename()));
+        return ResponseEntity.ok("Product Variation Added Successfully");
+    }
+
+    @Override
+    public ViewProductVariationDto viewProductVariations(Long productVariationId) throws AccessDeniedException, URISyntaxException {
+        ProductVariation productVariation=productVariationRepository.findById(productVariationId).orElseThrow(()->new EntityNotFoundException("Product Variation not found"));
+        if(!productVariation.getProduct().getSeller().getEmail().equals(SecurityContextHolder.getContext().getAuthentication().getName())){
+            throw new AccessDeniedException("Product Variation is not associated with this Seller ");
+        }
+        ViewProductVariationDto viewProductVariationDto=new ViewProductVariationDto();
+        viewProductVariationDto.setProductVariationID(productVariation.getId());
+        viewProductVariationDto.setMetadata(productVariation.getMetadata());
+        viewProductVariationDto.setPrice(productVariation.getPrice());
+        viewProductVariationDto.setQuantityAvailable(productVariation.getQuantityAvailable());
+        viewProductVariationDto.setPrimaryImage(new URI(imageService.downloadImage(path, productVariation.getId().toString())));
+
+        return viewProductVariationDto;
+    }
+
+    @Override
+    public ViewAllVariationDto viewProductVariationsByProduct(Long productId) {
+        Product product=productRepository.findById(productId).get();
+        ViewAllVariationDto viewAllVariationDto=new ViewAllVariationDto();
+        viewAllVariationDto.setProductId(product.getId());
+        viewAllVariationDto.setProductName(product.getName());
+        viewAllVariationDto.setDescription(product.getDescription());
+        viewAllVariationDto.setBrand(product.getBrand());
+        List<ViewProductVariationDto> productVariationList=  product.getProductVariation().stream().map(e->{
+            ViewProductVariationDto viewProductVariationDto=new ViewProductVariationDto();
+            viewProductVariationDto.setProductVariationID(e.getId());
+            viewProductVariationDto.setMetadata(e.getMetadata());
+            viewProductVariationDto.setPrice(e.getPrice());
+            viewProductVariationDto.setQuantityAvailable(e.getQuantityAvailable());
+            try {
+                viewProductVariationDto.setPrimaryImage(new URI(imageService.downloadImage(path, e.getId().toString())));
+            } catch (URISyntaxException ex) {
+                throw new RuntimeException(ex);
+            }
+            return viewProductVariationDto;
+
+        }).toList();
+        viewAllVariationDto.setProductVariations(productVariationList);
+        return viewAllVariationDto;
+    }
+
+    @Override
+    public ResponseEntity updateProductVariations(Long id, MultipartFile primaryImage, ProductVariationDto productVariationDto) throws URISyntaxException, IOException {
+        ProductVariation productVariation=productVariationRepository.findById(id).orElseThrow(()-> new EntityNotFoundException("Product Variation Not Found"));
+        productVariation.setPrice(productVariationDto.getPrice());
+        productVariation.setQuantityAvailable(productVariationDto.getQuantityAvailable());
+        productVariation.setMetadata(productVariationDto.getMetadata());
+        productVariation.setPrimaryImageName("12234567890");
+        productVariationRepository.save(productVariation);
+        imageService.uploadImage(path, primaryImage, productVariation.getId().toString());
+
+//        primaryImage.transferTo(new File(BASE_PATH+primaryImage.getOriginalFilename()));
+        return  ResponseEntity.ok("Product Variation Updated Successfully");
     }
 
 

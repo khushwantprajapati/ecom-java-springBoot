@@ -6,6 +6,7 @@ import com.ttn.ecommerce.dto.PasswordDto;
 import com.ttn.ecommerce.dto.category.CategoryDto;
 import com.ttn.ecommerce.dto.product.ProductDto;
 import com.ttn.ecommerce.dto.product.ProductResponseDto;
+import com.ttn.ecommerce.dto.product.ProductVariationDto;
 import com.ttn.ecommerce.dto.seller.SellerDto;
 import com.ttn.ecommerce.dto.seller.SellerProfileDto;
 import com.ttn.ecommerce.service.category.CategoryService;
@@ -16,7 +17,11 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 @RestController
@@ -90,4 +95,28 @@ public class SellerController {
         return categoryService.getAllChildCategories();
     }
 
+    // product variation
+
+    @PostMapping(value = "/add/variation/{id}")
+    public ResponseEntity<?> addProductVariation(@PathVariable Long id, @RequestPart("image") MultipartFile primaryImage, @RequestPart("productVariation") ProductVariationDto productVariationDto) throws IOException, URISyntaxException {
+        return ResponseEntity.ok(productService.addProductVariations(id,primaryImage,productVariationDto));
+    }
+
+
+    @GetMapping("/view/variation/{productVariationId}")
+    public ResponseEntity<?> viewProductVariation(@PathVariable Long productVariationId) throws AccessDeniedException, URISyntaxException {
+        return ResponseEntity.ok(productService.viewProductVariations(productVariationId));
+    }
+
+    @GetMapping("/view/variation/byProduct/{productId}")
+    public ResponseEntity<?> viewProductVariationByProduct(@PathVariable Long productId) {
+        return ResponseEntity.ok(productService.viewProductVariationsByProduct(productId));
+    }
+
+    @PutMapping("/update/variation/{id}")
+    public ResponseEntity<?> updateProductVariation(@PathVariable Long id,@RequestPart("image") MultipartFile primaryImage, @RequestPart("productVariation") ProductVariationDto productVariationDto) throws  IOException, URISyntaxException {
+        return ResponseEntity.ok(productService.updateProductVariations(id,primaryImage,productVariationDto));
+    }
 }
+
+

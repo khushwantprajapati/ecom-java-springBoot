@@ -76,6 +76,7 @@ public class CategoryServiceImpl implements CategoryService {
         // Iterate through the metadata fields and create DTO objects
         for (CategoryMetadataField metadataField : metadataFields) {
             MetadataFieldDto metadataFieldDto = new MetadataFieldDto();
+            metadataFieldDto.setId(metadataField.getId());
             metadataFieldDto.setName(metadataField.getName());
             metadataFieldDtoList.add(metadataFieldDto);
         }
