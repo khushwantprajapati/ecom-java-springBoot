@@ -1,4 +1,4 @@
-package com.ttn.ecommerce.dto;
+package com.ttn.ecommerce.dto.metadata;
 
 import lombok.Getter;
 import lombok.Setter;

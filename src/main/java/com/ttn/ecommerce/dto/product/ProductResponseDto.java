@@ -1,4 +1,4 @@
-package com.ttn.ecommerce.dto;
+package com.ttn.ecommerce.dto.product;
 
 import com.ttn.ecommerce.model.Category;
 import lombok.Getter;

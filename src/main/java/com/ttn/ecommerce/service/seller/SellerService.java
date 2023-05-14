@@ -9,12 +9,12 @@ import org.springframework.http.ResponseEntity;
 public interface SellerService {
     ResponseEntity<String> saveSeller(SellerDto sellerDto);
 
-    ResponseEntity<?> viewProfile(String activeToken);
+    ResponseEntity<?> viewProfile();
 
-    ResponseEntity<?> updateUserProfile(SellerProfileDto sellerProfileDto, String accessToken);
+    ResponseEntity<?> updateUserProfile(SellerProfileDto sellerProfileDto);
 
-    ResponseEntity<?> updatePassword(String accessToken, PasswordDto passwordDto);
+    ResponseEntity<?> updatePassword(PasswordDto passwordDto);
 
-    ResponseEntity<?> updateAddress(AddressDto addressDto, String accessToken);
+    ResponseEntity<?> updateAddress(AddressDto addressDto);
 
 }

@@ -9,7 +9,6 @@ import com.ttn.ecommerce.exception.GenericException;
 import com.ttn.ecommerce.model.Address;
 import com.ttn.ecommerce.model.Role;
 import com.ttn.ecommerce.model.Seller;
-import com.ttn.ecommerce.model.Token;
 import com.ttn.ecommerce.repository.AddressRepository;
 import com.ttn.ecommerce.repository.RoleRepository;
 import com.ttn.ecommerce.repository.SellerRepository;
@@ -19,6 +18,7 @@ import com.ttn.ecommerce.util.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -90,8 +90,9 @@ public class SellerServiceImpl implements SellerService {
 
 
     @Override
-    public ResponseEntity<?> viewProfile(String accessToken) {
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> viewProfile() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
         Seller seller = sellerRepository.findByEmailIgnoreCase(email);
         SellerProfileDto sellerProfileDto = new SellerProfileDto();
 
@@ -112,30 +113,19 @@ public class SellerServiceImpl implements SellerService {
         sellerProfileDto.setAddressLine(address.getAddressLine());
         sellerProfileDto.setZipCode(address.getZipCode());
 
-
-        Token token = tokenRepository.findByEmailAndJwt(email, accessToken);
-        if (token == null) {
-            throw new GenericException("Invalid access token", HttpStatus.UNAUTHORIZED);
-        }
-
-        if (seller == null || sellerProfileDto == null) {
-            throw new GenericException("Customer profile not found", HttpStatus.NOT_FOUND);
-        }
         return ResponseEntity.status(HttpStatus.OK).body(sellerProfileDto);
     }
 
     @Override
-    public ResponseEntity<?> updateUserProfile(SellerProfileDto sellerProfileDto, String accessToken) {
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> updateUserProfile(SellerProfileDto sellerProfileDto) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
         Seller seller = sellerRepository.findByEmailIgnoreCase(email);
 
         if (seller == null) {
             throw new GenericException("Customer not found", HttpStatus.NOT_FOUND);
         }
-        Token token = tokenRepository.findByEmailAndJwt(email, accessToken);
-        if (token == null || !token.getValid()) {
-            throw new GenericException("Invalid access token", HttpStatus.UNAUTHORIZED);
-        }
+
         if (sellerProfileDto.getFirstName() != null) {
             seller.setFirstName(sellerProfileDto.getFirstName());
         }
@@ -157,16 +147,13 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
-    public ResponseEntity<?> updatePassword(String accessToken, PasswordDto passwordDto) {
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> updatePassword(PasswordDto passwordDto) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Seller seller = sellerRepository.findByEmailIgnoreCase(email);
         if (seller == null) {
             throw new GenericException("Customer not found", HttpStatus.UNAUTHORIZED);
         }
-        Token token = tokenRepository.findByEmailAndJwt(email, accessToken);
-        if (token == null || !token.getValid()) {
-            throw new GenericException("Invalid access token", HttpStatus.UNAUTHORIZED);
-        }
+
         if (!passwordDto.getPassword().equals(passwordDto.getConfirmPassword())) {
             throw new GenericException("Password and confirm password do not match.", HttpStatus.BAD_REQUEST);
         }
@@ -178,17 +165,14 @@ public class SellerServiceImpl implements SellerService {
 
 
     @Override
-    public ResponseEntity<?> updateAddress(AddressDto addressDto, String accessToken) {
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> updateAddress(AddressDto addressDto) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Seller seller = sellerRepository.findByEmailIgnoreCase(email);
 
         if (seller == null) {
             throw new GenericException("Customer not found", HttpStatus.UNAUTHORIZED);
         }
-        Token token = tokenRepository.findByEmailAndJwt(email, accessToken);
-        if (token == null || !token.getValid()) {
-            throw new GenericException("Invalid access token", HttpStatus.UNAUTHORIZED);
-        }
+
         Address address = addressRepository.findAddressBySeller(seller);
         if (address == null) {
             throw new GenericException("Address not found", HttpStatus.NOT_FOUND);

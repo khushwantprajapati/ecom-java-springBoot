@@ -1,9 +1,9 @@
 package com.ttn.ecommerce.service.category;
 
-import com.ttn.ecommerce.dto.CategoryDto;
-import com.ttn.ecommerce.dto.CategoryListResponseDto;
-import com.ttn.ecommerce.dto.MetadataFieldDto;
-import com.ttn.ecommerce.dto.MetadataFieldValueDto;
+import com.ttn.ecommerce.dto.category.CategoryDto;
+import com.ttn.ecommerce.dto.category.CategoryListResponseDto;
+import com.ttn.ecommerce.dto.metadata.MetadataFieldDto;
+import com.ttn.ecommerce.dto.metadata.MetadataFieldValueDto;
 import com.ttn.ecommerce.exception.GenericException;
 import com.ttn.ecommerce.model.Category;
 import com.ttn.ecommerce.model.CategoryMetadataField;
@@ -270,7 +270,7 @@ public class CategoryServiceImpl implements CategoryService {
         List<CategoryDto> categoryDtoList = new ArrayList<>();
 
         if (childCategories.isEmpty()) {
-            throw new GenericException("No child categories found.",HttpStatus.NOT_FOUND);
+            throw new GenericException("No child categories found.", HttpStatus.NOT_FOUND);
         }
 
         for (Category category : childCategories) {

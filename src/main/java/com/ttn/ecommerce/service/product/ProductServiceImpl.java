@@ -1,7 +1,7 @@
 package com.ttn.ecommerce.service.product;
 
-import com.ttn.ecommerce.dto.ProductDto;
-import com.ttn.ecommerce.dto.ProductResponseDto;
+import com.ttn.ecommerce.dto.product.ProductDto;
+import com.ttn.ecommerce.dto.product.ProductResponseDto;
 import com.ttn.ecommerce.exception.GenericException;
 import com.ttn.ecommerce.model.Category;
 import com.ttn.ecommerce.model.Product;
@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 
@@ -56,7 +55,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<?> addProduct(ProductDto productDto) {
+    public ResponseEntity<?> addProductSeller(ProductDto productDto) {
         if (Objects.isNull(productDto)) { // Check if productDto is null
             throw new GenericException("Invalid input parameters", HttpStatus.BAD_REQUEST);
         }
@@ -96,8 +95,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
 
-
-
     public void productAddedMail(ProductDto product) {
         String subject = "New Product Added: " + product.getName();
         String body = "Hello,\n\nA new product has been added and requires your attention.\n\n"
@@ -116,7 +113,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<?> viewProduct(Long id) {
+    public ResponseEntity<?> viewProductById(Long id) {
         // Validate token and retrieve email of the seller from the token
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         // Retrieve the seller from the email
@@ -152,7 +149,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<List<ProductResponseDto>> viewAllProduct(Integer max, Integer offset, String sort, String order) {
+    public ResponseEntity<List<ProductResponseDto>> viewAllProductSeller(Integer max, Integer offset, String sort, String order) {
 
         // Get the email of the authenticated seller from the security context
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -206,9 +203,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
 
-
     @Override
-    public ResponseEntity<?> deleteProduct(Long id) {
+    public ResponseEntity<?> deleteProductSeller(Long id) {
 
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         // Retrieve the seller based on the email
@@ -235,9 +231,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
 
-
     @Override
-    public ResponseEntity<?> updateProduct(Long productId, ProductDto productDto) {
+    public ResponseEntity<?> updateProductSeller(Long productId, ProductDto productDto) {
         // Find the product to update
         Optional<Product> optionalProduct = productRepository.findById(productId);
         if (optionalProduct.isEmpty()) {
@@ -257,7 +252,8 @@ public class ProductServiceImpl implements ProductService {
             // Check if the product name already exists for the seller in the same category
             Optional<Product> existingProduct;
             if (productDto.getCategory() != null) {
-                existingProduct = productRepository.findByNameAndCategoryAndSeller(productDto.getName(), productDto.getCategory(), product.getSeller());
+                existingProduct = productRepository.findByNameAndCategoryAndSeller
+                        (productDto.getName(), productDto.getCategory(), product.getSeller());
             } else {
                 existingProduct = productRepository.findByNameAndSeller(productDto.getName(), product.getSeller());
             }
@@ -299,7 +295,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<?> viewProductCustomer(Long id) {
+    public ResponseEntity<?> viewProductByCustomerById(Long id) {
 
         //Seller seller = sellerRepository.findByEmailIgnoreCase(email);
 
@@ -327,7 +323,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<List<ProductDto>> getAllProductsByCategory(Long categoryId, Integer max, Integer offset, String sort, String order) {
+    public ResponseEntity<List<ProductDto>> getAllProductsByCategoryByCustomer(Long categoryId, Integer max, Integer offset, String sort, String order) {
         // Set default values for max and offset if not provided
         if (max == null) {
             max = 10;
@@ -374,9 +370,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
 
-
-
-    public ResponseEntity<List<ProductDto>> getSimilarProducts(Long productId) {
+    @Override
+    public ResponseEntity<List<ProductDto>> getSimilarProductsByCustomerById(Long productId) {
         Product product = productRepository.findById(productId).orElse(null);
         if (product == null) {
             return ResponseEntity.notFound().build();
@@ -407,7 +402,7 @@ public class ProductServiceImpl implements ProductService {
 
     // admin
     @Override
-    public ResponseEntity<?> getProductAdmin(Long id) {
+    public ResponseEntity<?> viewProductByAdminById(Long id) {
 
         // Check if the product ID is valid
         if (id == null || id <= 0) {
@@ -440,7 +435,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public ResponseEntity<List<ProductResponseDto>> viewAllProducts(Integer max, Integer offset, String sort, String order, Long categoryId, Long sellerId) {
+    public ResponseEntity<List<ProductResponseDto>> viewAllProductByAdmin(Integer max, Integer offset, String sort, String order, Long categoryId, Long sellerId) {
         // Set default value for max if not provided
         if (max == null && offset == null) {
             max = 10;

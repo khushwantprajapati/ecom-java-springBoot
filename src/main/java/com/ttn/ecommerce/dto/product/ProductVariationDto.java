@@ -1,4 +1,4 @@
-package com.ttn.ecommerce.dto;
+package com.ttn.ecommerce.dto.product;
 
 import lombok.Getter;
 import lombok.Setter;

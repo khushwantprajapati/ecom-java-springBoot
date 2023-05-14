@@ -23,22 +23,22 @@ public class SellerController {
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<?> customerProfile(@RequestParam("token") String activeToken) {
-        return sellerServiceImpl.viewProfile(activeToken);
+    public ResponseEntity<?> customerProfile() {
+        return sellerServiceImpl.viewProfile();
     }
 
     @RequestMapping(value = "/profile/update", method = {RequestMethod.PUT, RequestMethod.PATCH})
-    public ResponseEntity<?> updateCustomerProfile(@RequestBody SellerProfileDto sellerProfileDto, @RequestParam("token") String accessToken) {
-        return sellerServiceImpl.updateUserProfile(sellerProfileDto, accessToken);
+    public ResponseEntity<?> updateCustomerProfile(@RequestBody SellerProfileDto sellerProfileDto) {
+        return sellerServiceImpl.updateUserProfile(sellerProfileDto);
     }
 
     @RequestMapping(value = "/password/update", method = {RequestMethod.PUT, RequestMethod.PATCH})
-    public ResponseEntity<?> updateCustomerPassword(@RequestBody PasswordDto passwordDto, @RequestParam("token") String accessToken) {
-        return sellerServiceImpl.updatePassword(accessToken, passwordDto);
+    public ResponseEntity<?> updateCustomerPassword(@RequestBody PasswordDto passwordDto) {
+        return sellerServiceImpl.updatePassword(passwordDto);
     }
 
     @RequestMapping(value = "/update/address", method = {RequestMethod.PUT, RequestMethod.PATCH})
-    public ResponseEntity<?> updateAddress(@RequestBody AddressDto addressDto, @RequestParam String token) {
-        return sellerServiceImpl.updateAddress(addressDto, token);
+    public ResponseEntity<?> updateAddress(@RequestBody AddressDto addressDto) {
+        return sellerServiceImpl.updateAddress(addressDto);
     }
 }

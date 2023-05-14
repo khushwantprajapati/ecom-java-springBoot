@@ -10,22 +10,20 @@ import com.ttn.ecommerce.exception.GenericException;
 import com.ttn.ecommerce.model.Address;
 import com.ttn.ecommerce.model.Customer;
 import com.ttn.ecommerce.model.Role;
-import com.ttn.ecommerce.model.Token;
 import com.ttn.ecommerce.repository.*;
 import com.ttn.ecommerce.service.EmailSenderService;
 import com.ttn.ecommerce.util.JwtUtils;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 public class CustomerServiceImpl implements CustomerService {
@@ -133,15 +131,10 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public ResponseEntity<?> viewProfile(HttpServletRequest request) {
-
-        String accessToken = jwtUtils.getTokenThroughRequest(request);
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> viewProfile() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
-        Optional<Token> token = tokenRepository.findByJwt(accessToken);
-        invalidAccessToken(token);
         customerNotFound(customer);
-
         CustomerProfileDto customerProfileDto = new CustomerProfileDto();
         customerProfileDto.setId(customer.getId());
         customerProfileDto.setFirstName(customer.getFirstName());
@@ -153,17 +146,12 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public ResponseEntity<?> updateUserProfile(CustomerProfileDto customerProfileDto, HttpServletRequest request) {
-        String accessToken = jwtUtils.getTokenThroughRequest(request);
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> updateUserProfile(CustomerProfileDto customerProfileDto) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
 
         customerNotFound(customer);
-
-        Token token = tokenRepository.findByEmailAndJwt(email, accessToken);
-
-        invalidAccessToken(token);
-
 
         if (customerProfileDto.getFirstName() != null) {
             customer.setFirstName(customerProfileDto.getFirstName());
@@ -183,15 +171,11 @@ public class CustomerServiceImpl implements CustomerService {
 
 
     @Override
-    public ResponseEntity<?> updatePassword(String accessToken, PasswordDto passwordDto) {
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> updatePassword(PasswordDto passwordDto) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
 
         customerNotFound(customer);
-
-        Token token = tokenRepository.findByEmailAndJwt(email, accessToken);
-
-        invalidAccessToken(token);
 
         if (!passwordDto.getPassword().equals(passwordDto.getConfirmPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -205,15 +189,11 @@ public class CustomerServiceImpl implements CustomerService {
 
 
     @Override
-    public ResponseEntity<?> createAddress(AddressDto addressDto, String accessToken) {
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> createAddress(AddressDto addressDto) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
 
         customerNotFound(customer);
-
-        Token token = tokenRepository.findByEmailAndJwt(email, accessToken);
-
-        invalidAccessToken(token);
 
         Address address = new Address();
 
@@ -230,15 +210,11 @@ public class CustomerServiceImpl implements CustomerService {
 
 
     @Override
-    public ResponseEntity<?> updateAddress(Long id, AddressDto addressDto, String accessToken) {
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> updateAddress(Long id, AddressDto addressDto) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
 
         customerNotFound(customer);
-
-        Token token = tokenRepository.findByEmailAndJwt(email, accessToken);
-
-        invalidAccessToken(token);
 
         Address address = addressRepository.findAddressByCustomerAndId(customer, id);
 
@@ -256,16 +232,11 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public ResponseEntity<?> deleteAddress(Long id, String accessToken) {
-        String email = jwtUtils.validateTokenAndRetrieveSubject(accessToken);
+    public ResponseEntity<?> deleteAddress(Long id) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
 
         customerNotFound(customer);
-
-        Token token = tokenRepository.findByEmailAndJwt(email, accessToken);
-
-        invalidAccessToken(token);
-
         Address address = addressRepository.findAddressByCustomerAndId(customer, id);
 
         addressNotFound(address);
@@ -284,18 +255,6 @@ public class CustomerServiceImpl implements CustomerService {
     private void addressNotFound(Address address) {
         if (Objects.isNull(address)) {
             throw new GenericException("Address not found", HttpStatus.NOT_FOUND);
-        }
-    }
-
-    private void invalidAccessToken(Optional<Token> token) {
-        if (token.isEmpty()) {
-            throw new GenericException("Invalid access token", HttpStatus.NOT_FOUND);
-        }
-    }
-
-    private void invalidAccessToken(Token token) {
-        if (token == null) {
-            throw new GenericException("Invalid access token", HttpStatus.NOT_FOUND);
         }
     }
 
