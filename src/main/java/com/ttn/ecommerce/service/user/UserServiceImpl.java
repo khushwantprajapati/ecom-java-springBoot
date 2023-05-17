@@ -65,23 +65,26 @@ public class UserServiceImpl implements UserService {
         if (user.getIsLocked()) {
             throw new GenericException("Your account is locked. Please contact admin to unlock your account.", HttpStatus.FORBIDDEN);
         }
-        Token activeToken = tokenRepository.findByEmail(user.getEmail());
-        if (!Objects.isNull(activeToken) && activeToken.getIsActive())
-            if (jwtUtils.isTokenExpired(activeToken.getJwt())) {
-                tokenRepository.delete(activeToken);
-            } else {
-                throw new GenericException("You already have an active session. \n" + activeToken.getJwt(), HttpStatus.OK);
-            }
+
 
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            token = jwtUtils.generateToken(user.getEmail(), 1440);
-            Token newToken = new Token();
-            newToken.setEmail(user.getEmail());
-            newToken.setJwt(token);
-            tokenRepository.save(newToken);
+            Token activeToken = tokenRepository.findByEmail(user.getEmail());
+
+            if (!Objects.isNull(activeToken) && activeToken.getIsActive())
+                if (jwtUtils.isTokenExpired(activeToken.getJwt())) {
+                    tokenRepository.delete(activeToken);
+                } else {
+                    throw new GenericException("You already have an active session. \n" + activeToken.getJwt(), HttpStatus.OK);
+                }else {
+                token = jwtUtils.generateToken(user.getEmail(), 1440);
+                Token newToken = new Token();
+                newToken.setEmail(user.getEmail());
+                newToken.setJwt(token);
+                tokenRepository.save(newToken);
+            }
 
         } catch (BadCredentialsException e) {
 
