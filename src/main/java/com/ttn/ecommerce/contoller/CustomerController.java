@@ -2,7 +2,7 @@ package com.ttn.ecommerce.contoller;
 
 import com.ttn.ecommerce.dto.AddressDto;
 import com.ttn.ecommerce.dto.ChangePasswordDto;
-import com.ttn.ecommerce.dto.PasswordDto;
+import com.ttn.ecommerce.dto.MessageDto;
 import com.ttn.ecommerce.dto.category.CategoryDto;
 import com.ttn.ecommerce.dto.customer.CustomerDto;
 import com.ttn.ecommerce.dto.customer.CustomerProfileDto;
@@ -10,7 +10,6 @@ import com.ttn.ecommerce.dto.product.ProductDto;
 import com.ttn.ecommerce.service.category.CategoryService;
 import com.ttn.ecommerce.service.customer.CustomerService;
 import com.ttn.ecommerce.service.product.ProductService;
-import com.ttn.ecommerce.service.product.ProductServiceImpl;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +30,7 @@ public class CustomerController {
     private CategoryService categoryService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> createAccount(@Valid @RequestBody CustomerDto customerDto) {
+    public ResponseEntity<MessageDto> createAccount(@Valid @RequestBody CustomerDto customerDto) {
         return customerServiceImpl.createAccount(customerDto);
     }
 

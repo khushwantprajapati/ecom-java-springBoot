@@ -12,28 +12,28 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CustomerDto {
 
-    @NotBlank(message = "E-mail is mandatory")
-    @Email(message = "E-mail is not valid")
+    @NotBlank(message = "Email is required.")
+    @Email(message = "Invalid email format. Please provide a valid email address.")
     private String email;
 
-    @NotBlank(message = "First name is mandatory")
+    @NotBlank(message = "First name is required.")
     private String firstName;
 
     private String middleName;
 
-    @NotBlank(message = "Last name is mandatory")
+    @NotBlank(message = "Last name is required.")
     private String lastName;
 
-    @NotBlank(message = "Password is mandatory")
+    @NotBlank(message = "Password is required.")
     @Pattern(regexp = "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#@$?]).{8,15}$",
-            message = "Password must contain 8-15 characters" +
-                    " with at least one uppercase letter, one lowercase letter,one special character and one digit")
+            message = "Password must be 8-15 characters long and include at least one uppercase letter, one lowercase letter, one digit, and one special character (#@$?).")
     private String password;
 
+    @NotBlank(message = "Confirm password is required.")
     private String confirmPassword;
 
-    @NotBlank(message = "Contact number is mandatory")
-    @Pattern(regexp = "(^$|[0-9]{10})", message = "Enter valid phone number.")
+    @NotBlank(message = "Contact number is required.")
+    @Pattern(regexp = "(^$|[0-9]{10})", message = "Invalid phone number format. Please enter a 10-digit number.")
     private String contact;
 
 }

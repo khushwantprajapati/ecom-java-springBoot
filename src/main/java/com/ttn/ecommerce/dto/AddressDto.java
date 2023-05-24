@@ -1,13 +1,8 @@
 package com.ttn.ecommerce.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.Getter;
-import lombok.Setter;
-
-
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -33,7 +28,8 @@ public class AddressDto {
     @Pattern(regexp = "^\\d{5}(?:[-\\s]\\d{4})?$", message = "Zip code is not valid")
     private String zipCode;
 
+    @Size(max = 10, message = "Label cannot exceed 10 characters")
     private String label;
 
-}
 
+}

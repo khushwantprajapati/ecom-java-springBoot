@@ -1,9 +1,8 @@
 package com.ttn.ecommerce.service.customer;
 
-import com.ttn.ecommerce.config.JwtFilter;
 import com.ttn.ecommerce.dto.AddressDto;
 import com.ttn.ecommerce.dto.ChangePasswordDto;
-import com.ttn.ecommerce.dto.PasswordDto;
+import com.ttn.ecommerce.dto.MessageDto;
 import com.ttn.ecommerce.dto.customer.CustomerDto;
 import com.ttn.ecommerce.dto.customer.CustomerProfileDto;
 import com.ttn.ecommerce.enums.Authority;
@@ -49,29 +48,24 @@ public class CustomerServiceImpl implements CustomerService {
     @Autowired
     AddressRepository addressRepository;
 
-    @Autowired
-    TokenRepository tokenRepository;
-
-
-    @Autowired
-    JwtFilter jwtFilter;
-
-    @Autowired
-    UserRepository userRepository;
-
     @Value("${url}")
     private String url;
 
+    private ResponseEntity<MessageDto> createResponse(HttpStatus httpStatus, String message) {
+        MessageDto messageDto = new MessageDto();
+        messageDto.setMessage(message);
+        return ResponseEntity.status(httpStatus).body(messageDto);
+    }
+    
+
     @Override
-    public ResponseEntity<String> createAccount(CustomerDto customerDto) {
-
-
+    public ResponseEntity<MessageDto> createAccount(CustomerDto customerDto) {
         if (!customerDto.getPassword().equals(customerDto.getConfirmPassword())) {
-            throw new GenericException("Password and confirm password do not match", HttpStatus.BAD_REQUEST);
+            return createResponse(HttpStatus.BAD_REQUEST, "Password and confirm password do not match");
         }
 
         if (customerRepository.existsByEmail(customerDto.getEmail())) {
-            throw new GenericException("Email address is already registered", HttpStatus.BAD_REQUEST);
+            return createResponse(HttpStatus.CONFLICT, "Email address is already registered");
         }
 
         Customer customer = new Customer();
@@ -82,7 +76,6 @@ public class CustomerServiceImpl implements CustomerService {
         customer.setContact(customerDto.getContact());
 
         Role role = roleRepository.findByAuthority(Authority.CUSTOMER);
-        customer.setPassword(passwordEncoder.encode(customerDto.getPassword()));
         customer.setRole(List.of(role));
 
         customerRepository.save(customer);
@@ -90,65 +83,72 @@ public class CustomerServiceImpl implements CustomerService {
         String token = jwtUtils.generateToken(customer.getEmail(), 180);
         sendEmail(customer.getEmail(), token);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body("Thank you for registering!");
-
+        return createResponse(HttpStatus.CREATED, "Thank you for registering!");
     }
 
     public void sendEmail(String email, String token) {
+        String verificationUrl = url + "/customer/activate?token=" + token;
+
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
-        message.setSubject("Account verification");
-        message.setText("Please use the following token to activate: " +
-                url + "/customer/activate?token=" + token);
+        message.setSubject("Account Verification");
+        message.setText("Please click the link below to activate your account:\n" + verificationUrl);
+
         emailSenderService.sendEmail(message);
     }
+
 
     @Override
     public ResponseEntity<String> activateAccount(String activeToken) {
         if (StringUtils.isBlank(activeToken)) {
-            throw new GenericException("Activation token cannot be blank", HttpStatus.BAD_REQUEST);
+            throw new GenericException("Activation token cannot be blank.", HttpStatus.BAD_REQUEST);
         }
 
         String email = jwtUtils.validateTokenAndRetrieveSubject(activeToken);
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
 
         if (customer == null) {
-            throw new GenericException("Invalid activation token", HttpStatus.BAD_REQUEST);
+            throw new GenericException("Invalid activation token.", HttpStatus.BAD_REQUEST);
         }
 
         if (customer.getIsActive()) {
-            throw new GenericException("Account is already activated", HttpStatus.OK);
+            String message = "Account is already activated.";
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
         }
 
         customer.setIsActive(true);
         customerRepository.save(customer);
 
-        String message = "Account verified";
+        String message = "Account has been successfully activated.";
         return ResponseEntity.status(HttpStatus.OK).body(message);
     }
+
 
 
     @Override
     public ResponseEntity<String> resendActivationMail(String email) {
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
-
         customerNotFound(customer);
 
         if (customer.getIsActive()) {
-            throw new GenericException("Your account is already active.", HttpStatus.OK);
+            String message = "Your account is already active.";
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
         }
+
         String token = jwtUtils.generateToken(customer.getEmail(), 180);
         sendEmail(customer.getEmail(), token);
-        return ResponseEntity.status(HttpStatus.OK).body("Resend verification link");
+
+        String message = "Verification link has been resent.";
+        return ResponseEntity.status(HttpStatus.OK).body(message);
     }
 
     @Override
-    public ResponseEntity<?> viewProfile() {
+    public ResponseEntity<CustomerProfileDto> viewProfile() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
 
         if (customer == null) {
-            throw new GenericException("Customer not found", HttpStatus.NOT_FOUND);
+            throw new GenericException("Customer not found.", HttpStatus.NOT_FOUND);
         }
 
         CustomerProfileDto customerProfileDto = new CustomerProfileDto();
@@ -160,6 +160,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         return ResponseEntity.ok(customerProfileDto);
     }
+
 
 
     @Override
@@ -182,17 +183,24 @@ public class CustomerServiceImpl implements CustomerService {
         if (customerDto.getContact() != null) {
             customer.setContact(customerDto.getContact());
         }
+
+        // Check for null values
+        if (customerDto.getFirstName() == null || customerDto.getMiddleName() == null ||
+                customerDto.getLastName() == null || customerDto.getContact() == null) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Fields cannot be null.");
+        }
+
         customerRepository.save(customer);
         return ResponseEntity.status(HttpStatus.OK).body("Customer updated");
     }
 
 
 
+
     @Override
-    public ResponseEntity<?> updatePassword(ChangePasswordDto passwordDto) {
+    public ResponseEntity<String> updatePassword(ChangePasswordDto passwordDto) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
-
         customerNotFound(customer);
 
         if (!passwordDto.getPassword().equals(passwordDto.getConfirmPassword())) {
@@ -202,25 +210,25 @@ public class CustomerServiceImpl implements CustomerService {
 
         if (!passwordEncoder.matches(passwordDto.getOldPassword(), customer.getPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Old password is incorrect.");
+                    .body("Invalid old password.");
         }
 
-        customer.setPassword(passwordEncoder.encode(passwordDto.getPassword()));
+        String newPassword = passwordEncoder.encode(passwordDto.getPassword());
+        customer.setPassword(newPassword);
         customerRepository.save(customer);
-        return ResponseEntity.ok("Password updated successfully");
+
+        String message = "Password updated successfully.";
+        return ResponseEntity.ok(message);
     }
 
 
-
     @Override
-    public ResponseEntity<?> createAddress(AddressDto addressDto) {
+    public ResponseEntity<Address> createAddress(AddressDto addressDto) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
-
         customerNotFound(customer);
 
         Address address = new Address();
-
         address.setCustomer(customer);
         address.setCity(addressDto.getCity());
         address.setState(addressDto.getState());
@@ -233,24 +241,31 @@ public class CustomerServiceImpl implements CustomerService {
         }
 
         Address savedAddress = addressRepository.save(address);
-        return new ResponseEntity<>(savedAddress, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedAddress);
     }
-
 
     @Override
     public ResponseEntity<List<AddressDto>> getAllAddresses() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        if (StringUtils.isBlank(email)) {
+            throw new GenericException("Invalid user email", HttpStatus.BAD_REQUEST);
+        }
+
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
 
-        customerNotFound(customer);
+        if (customer == null) {
+            throw new GenericException("Customer not found", HttpStatus.NOT_FOUND);
+        }
 
         List<Address> addresses = addressRepository.findByCustomer(customer);
 
         if (addresses.isEmpty()) {
-            throw new GenericException("No addresses found for the customer", HttpStatus.BAD_REQUEST);
+            throw new GenericException("No addresses found for the customer", HttpStatus.NOT_FOUND);
         }
 
         List<AddressDto> addressResponseDtoList = new ArrayList<>();
+
         for (Address address : addresses) {
             AddressDto addressDto = new AddressDto();
             addressDto.setId(address.getId());
@@ -267,6 +282,8 @@ public class CustomerServiceImpl implements CustomerService {
         return ResponseEntity.ok().body(addressResponseDtoList);
     }
 
+
+
     @Override
     public ResponseEntity<?> updateAddress(Long id, AddressDto addressDto) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -278,16 +295,26 @@ public class CustomerServiceImpl implements CustomerService {
 
         addressNotFound(address);
 
-
-        address.setCity(addressDto.getCity());
-        address.setState(addressDto.getState());
-        address.setCountry(addressDto.getCountry());
-        address.setZipCode(addressDto.getZipCode());
-        address.setAddressLine(addressDto.getAddressLine());
+        if (addressDto.getCity() != null) {
+            address.setCity(addressDto.getCity());
+        }
+        if (addressDto.getState() != null) {
+            address.setState(addressDto.getState());
+        }
+        if (addressDto.getCountry() != null) {
+            address.setCountry(addressDto.getCountry());
+        }
+        if (addressDto.getZipCode() != null) {
+            address.setZipCode(addressDto.getZipCode());
+        }
+        if (addressDto.getAddressLine() != null) {
+            address.setAddressLine(addressDto.getAddressLine());
+        }
 
         Address savedAddress = addressRepository.save(address);
-        return new ResponseEntity<>(savedAddress, HttpStatus.CREATED);
+        return ResponseEntity.ok(savedAddress);
     }
+
 
     @Override
     public ResponseEntity<?> deleteAddress(Long id) {
@@ -295,13 +322,19 @@ public class CustomerServiceImpl implements CustomerService {
         Customer customer = customerRepository.findByEmailIgnoreCase(email);
 
         customerNotFound(customer);
+
         Address address = addressRepository.findAddressByCustomerAndId(customer, id);
 
-        addressNotFound(address);
+        if (address == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Address not found for the given ID: " + id);
+        }
 
         addressRepository.delete(address);
-        return ResponseEntity.ok().body("Address with id " + id + " has been deleted.");
+
+        return ResponseEntity.ok().body("Address with ID " + id + " has been deleted successfully.");
     }
+
 
 
     private void customerNotFound(Customer customer) {

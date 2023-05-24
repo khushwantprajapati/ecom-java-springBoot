@@ -2,7 +2,7 @@ package com.ttn.ecommerce.service.customer;
 
 import com.ttn.ecommerce.dto.AddressDto;
 import com.ttn.ecommerce.dto.ChangePasswordDto;
-import com.ttn.ecommerce.dto.PasswordDto;
+import com.ttn.ecommerce.dto.MessageDto;
 import com.ttn.ecommerce.dto.customer.CustomerDto;
 import com.ttn.ecommerce.dto.customer.CustomerProfileDto;
 import org.springframework.http.ResponseEntity;
@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 
 public interface CustomerService {
-    ResponseEntity<String> createAccount(CustomerDto customerDto);
+    ResponseEntity<MessageDto> createAccount(CustomerDto customerDto);
 
     void sendEmail(String email, String token);
 

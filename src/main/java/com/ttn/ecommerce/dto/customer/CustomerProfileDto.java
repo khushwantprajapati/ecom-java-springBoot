@@ -8,13 +8,14 @@ import lombok.Setter;
 @Setter
 public class CustomerProfileDto {
 
-    Long id;
-    String firstName;
-    String middleName;
-    String lastName;
-    @Pattern(regexp = "(^$|[0-9]{10})", message = "Enter valid phone number.")
-    String contact;
-    Boolean isActive;
 
+    private Long id;
+    private String firstName;
+    private String middleName;
+    private String lastName;
 
+    @Pattern(regexp = "(^$|[0-9]{10})", message = "Enter a valid phone number.")
+    private String contact;
+
+    private Boolean isActive;
 }

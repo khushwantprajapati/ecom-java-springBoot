@@ -66,7 +66,6 @@ public class UserServiceImpl implements UserService {
             throw new GenericException("Your account is locked. Please contact admin to unlock your account.", HttpStatus.FORBIDDEN);
         }
 
-
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword()));
@@ -76,6 +75,7 @@ public class UserServiceImpl implements UserService {
             if (!Objects.isNull(activeToken) && activeToken.getIsActive())
                 if (jwtUtils.isTokenExpired(activeToken.getJwt())) {
                     tokenRepository.delete(activeToken);
+
                 } else {
                     throw new GenericException("You already have an active session. \n" + activeToken.getJwt(), HttpStatus.OK);
                 }else {
@@ -95,7 +95,7 @@ public class UserServiceImpl implements UserService {
                 user.setIsActive(false);
                 user.setInvalidAttemptCount(invalidAttemptCount);
                 userRepository.save(user);
-                throw new GenericException("Your account has been locked due to too many failed login attempts.", HttpStatus.FORBIDDEN);
+                throw new GenericException("Your account has been locked due to too many failed login attempts." , HttpStatus.FORBIDDEN);
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid password.");
         }

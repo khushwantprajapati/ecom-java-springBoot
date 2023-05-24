@@ -71,42 +71,5 @@ public class JwtFilter extends OncePerRequestFilter {
         return null;
     }
 
-//    @Override
-//    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-//        String authHeader = request.getHeader("Authorization");
-//        if (authHeader != null && !authHeader.isBlank() && authHeader.startsWith("Bearer ")) {
-//            String jwt = authHeader.substring(7);
-//            if (jwt.isBlank()) {
-//                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid JWT Token in Bearer Header");
-//            } else {
-//                String email;
-//                try {
-//                    email = jwtUtils.validateTokenAndRetrieveSubject(jwt);
-//                } catch (RuntimeException e) {
-//                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired JWT token");
-//                    return;
-//                }
-//                Token token;
-//                try {
-//                    token = tokenRepository.findByJwt(jwt)
-//                            .orElseThrow(() -> new RuntimeException("Token not found"));
-//                } catch (RuntimeException e) {
-//                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired JWT token");
-//                    return;
-//                }
-//                if (!token.getValid()) {
-//                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired JWT token");
-//                    return;
-//                }
-//                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-//                UsernamePasswordAuthenticationToken authToken =
-//                        new UsernamePasswordAuthenticationToken(userDetails.getUsername(), userDetails.getPassword(), userDetails.getAuthorities());
-//                if (SecurityContextHolder.getContext().getAuthentication() == null) {
-//                    SecurityContextHolder.getContext().setAuthentication(authToken);
-//                }
-//            }
-//        }
-//        filterChain.doFilter(request, response);
-//    }
 }
 
